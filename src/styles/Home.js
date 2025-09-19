@@ -129,7 +129,7 @@ export const Hero = styled.section`
   }
 
   @media (max-width: 480px) {
-    background-size: 105%; /* Further zoom out for smaller devices */
+    background-size: 108%; /* Further zoom out for smaller devices */
   }
 `;
 
