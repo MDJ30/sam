@@ -15,22 +15,48 @@ function Home() {
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth <= 768);
+      // Close menu when screen size changes
+      if (window.innerWidth > 768) {
+        setIsMenuOpen(false);
+      }
     };
 
     const handleScroll = () => {
       const scrollPosition = window.scrollY;
       const newHeight = Math.max(isMobile ? 150 : 200, 400 - scrollPosition * 0.5);
       setHeroHeight(newHeight);
+      // Close menu when scrolling
+      if (isMenuOpen) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    // Handle clicking outside to close menu
+    const handleClickOutside = (event) => {
+      if (isMenuOpen && !event.target.closest('nav')) {
+        setIsMenuOpen(false);
+      }
     };
 
     window.addEventListener('scroll', handleScroll);
     window.addEventListener('resize', handleResize);
+    document.addEventListener('mousedown', handleClickOutside);
     
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('resize', handleResize);
+      document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isMobile]);
+  }, [isMobile, isMenuOpen]);
+
+  // Prevent scroll when menu is open
+  useEffect(() => {
+    if (isMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+  }, [isMenuOpen]);
 
   return (
     <>

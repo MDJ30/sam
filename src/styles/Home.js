@@ -124,6 +124,12 @@ export const Hero = styled.section`
 
   @media (max-width: 768px) {
     height: ${props => Math.max(150, props.height * 0.7)}px;
+    background-size: 105%; /* Zoom out the image */
+    background-position: top center; /* Adjust position to show more of the image */
+  }
+
+  @media (max-width: 480px) {
+    background-size: 150%; /* Further zoom out for smaller devices */
   }
 `;
 
