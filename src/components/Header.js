@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { FaSearch } from 'react-icons/fa';
 import logo from "../2.png";
 import styled from 'styled-components';
@@ -146,6 +146,61 @@ const MobileMenuOverlay = styled.div`
 
 const Header = ({ isMenuOpen, setIsMenuOpen }) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [activeLink, setActiveLink] = useState('');
+  const location = useLocation();
+
+  // Scroll to top on page refresh
+  useEffect(() => {
+    window.onbeforeunload = () => {
+      window.scrollTo(0, 0);
+    };
+
+    // Scroll to top when location changes
+    window.scrollTo(0, 0);
+
+    return () => {
+      window.onbeforeunload = null;
+    };
+  }, []);
+
+  // Reset active link when route changes
+ useEffect(() => {
+  const handleScroll = () => {
+    const footer = document.querySelector("footer");
+    if (!footer) return;
+
+    const rect = footer.getBoundingClientRect();
+    const isFooterVisible = rect.top < window.innerHeight && rect.bottom >= 0;
+
+    if (isFooterVisible) {
+      setActiveLink("contact");
+    } else {
+      if (location.pathname === "/") {
+        setActiveLink("home");
+      } else if (location.pathname === "/about") {
+        setActiveLink("about");
+      } else if (location.pathname === "/news") {
+        setActiveLink("news");
+      } else if (location.pathname === "/team") {
+        setActiveLink("team");
+      } else if (location.pathname === "/videos") {
+        setActiveLink("videos");
+      } else {
+        setActiveLink("");
+      }
+    }
+  };
+
+  handleScroll();
+  window.addEventListener("scroll", handleScroll);
+  return () => window.removeEventListener("scroll", handleScroll);
+}, [location]);
+
+
+  const handleNavClick = (linkName) => {
+    setActiveLink(linkName);
+    setIsMenuOpen(false);
+  };
 
   const handleSearchClick = () => {
     setIsSearchOpen(!isSearchOpen);
@@ -157,45 +212,101 @@ const Header = ({ isMenuOpen, setIsMenuOpen }) => {
     }
   };
 
+  const scrollToFooter = (e) => {
+  e.preventDefault();
+  setActiveLink("contact"); // Only mark as contact active when clicked
+  const footer = document.querySelector("footer");
+  if (footer) {
+    footer.scrollIntoView({ behavior: "smooth" });
+    setIsMenuOpen(false);
+  }
+};
+
   return (
     <>
       <Navbar>
-  <Logo src={logo} alt="Spirit FM Logo" />
+        <Logo src={logo} alt="Spirit FM Logo" />
+        <HamburgerIcon
+          className={isMenuOpen ? 'open' : ''}
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </HamburgerIcon>
 
-  <HamburgerIcon
-    className={isMenuOpen ? 'open' : ''}
-    onClick={() => setIsMenuOpen(!isMenuOpen)}
+        <NavLinks isOpen={isMenuOpen}>
+        <StyledNavLink
+  as="a"
+  href="/"
+  className={activeLink === "home" ? "active" : ""}
+  onClick={(e) => {
+    e.preventDefault();
+    setActiveLink("home");
+    setIsMenuOpen(false);
+    window.history.pushState({}, "", "/"); // navigate without reload
+    window.scrollTo(0, 0);
+  }}
+>
+  Home
+</StyledNavLink>
+
+          <li>
+            <StyledNavLink 
+              to="/about"
+              onClick={() => handleNavClick('about')}
+            >
+              About Us
+            </StyledNavLink>
+          </li>
+          <li>
+            <StyledNavLink 
+              to="/news"
+              onClick={() => handleNavClick('news')}
+            >
+              News
+            </StyledNavLink>
+          </li>
+          <li>
+            <StyledNavLink 
+              to="/team"
+              onClick={() => handleNavClick('team')}
+            >
+              Team
+            </StyledNavLink>
+          </li>
+          <li>
+            <StyledNavLink 
+              to="/videos"
+              onClick={() => handleNavClick('videos')}
+            >
+              Videos
+            </StyledNavLink>
+          </li>
+        <li>
+  <StyledNavLink
+    as="a"
+    href="#contact"
+    className={activeLink === "contact" ? "active" : ""}
+    onClick={scrollToFooter}
   >
-    <span></span>
-    <span></span>
-    <span></span>
-  </HamburgerIcon>
-
-  {/* ✅ now NavLinks will only appear on mobile when open */}
-  <NavLinks isOpen={isMenuOpen}>
-    <li><StyledNavLink to="/">Home</StyledNavLink></li>
-    <li><StyledNavLink to="/about">About Us</StyledNavLink></li>
-    <li><StyledNavLink to="/programs">Programs</StyledNavLink></li>
-    <li><StyledNavLink to="/team">Team</StyledNavLink></li>
-    <li><StyledNavLink to="/videos">Videos</StyledNavLink></li>
-    <li><StyledNavLink to="/contact">Contact Us</StyledNavLink></li>
-    <li>
-      <SearchContainer>
-        <SearchBar
-          type="text"
-          placeholder="Search..."
-          isOpen={isSearchOpen}
-          id="searchInput"
-        />
-        <SearchIcon onClick={handleSearchClick} />
-      </SearchContainer>
-    </li>
-  </NavLinks>
-</Navbar>
-
-      {/* Mobile overlay (dark background) */}
-    <MobileMenuOverlay isOpen={isMenuOpen} onClick={() => setIsMenuOpen(false)} />
-
+    Contact Us
+  </StyledNavLink>
+</li>
+          <li>
+            <SearchContainer>
+              <SearchBar
+                type="text"
+                placeholder="Search..."
+                isOpen={isSearchOpen}
+                id="searchInput"
+              />
+              <SearchIcon onClick={handleSearchClick} />
+            </SearchContainer>
+          </li>
+        </NavLinks>
+      </Navbar>
+      <MobileMenuOverlay isOpen={isMenuOpen} onClick={() => setIsMenuOpen(false)} />
     </>
   );
 };
