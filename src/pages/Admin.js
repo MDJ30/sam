@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ref, push, set } from 'firebase/database';
-import { collection, addDoc } from 'firebase/firestore';
+import { ref, push, set, remove, onValue } from 'firebase/database'; // Added onValue here
+import { collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db, firestore } from '../config/firebase';
 import styled from 'styled-components';
 
@@ -74,17 +74,26 @@ const Message = styled.div`
   `}
 `;
 
+const ImagePreview = styled.img`
+  max-width: 200px;
+  max-height: 200px;
+  margin-top: 1rem;
+  border-radius: 4px;
+`;
+
 function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [headline, setHeadline] = useState({ 
     title: '', 
     date: '', 
-    imageUrl: '' // Changed from image to imageUrl
+    image: null,
+    imagePreview: null
   });
   const [localNews, setLocalNews] = useState({ 
     title: '', 
     date: '', 
-    imageUrl: '' // Changed from image to imageUrl
+    image: null,
+    imagePreview: null
   });
   const [quote, setQuote] = useState('');
   const [isLoading, setIsLoading] = useState({
@@ -95,6 +104,15 @@ function Admin() {
   const [message, setMessage] = useState({
     text: '',
     type: ''
+  });
+  const [currentContent, setCurrentContent] = useState({
+    headlines: [],
+    localNews: [],
+    quote: ''
+  });
+  const [editMode, setEditMode] = useState({
+    headline: null,
+    localNews: null
   });
 
   useEffect(() => {
@@ -117,31 +135,114 @@ function Admin() {
     }
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    // Fetch headlines from Firestore
+    const headlinesRef = collection(firestore, 'headlines');
+    const unsubscribeHeadlines = onSnapshot(headlinesRef, (snapshot) => {
+      const headlines = [];
+      snapshot.forEach(doc => {
+        headlines.push({ id: doc.id, ...doc.data() });
+      });
+      setCurrentContent(prev => ({ ...prev, headlines }));
+    });
+
+    // Fetch local news from Realtime Database
+    const newsRef = ref(db, 'localNews');
+    const unsubscribeNews = onValue(newsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const news = Object.entries(data).map(([key, value]) => ({
+          id: key,
+          ...value
+        }));
+        setCurrentContent(prev => ({ ...prev, localNews: news }));
+      }
+    });
+
+    // Fetch quote
+    const quoteRef = ref(db, 'quote');
+    const unsubscribeQuote = onValue(quoteRef, (snapshot) => {
+      const data = snapshot.val();
+      setCurrentContent(prev => ({ ...prev, quote: data || '' }));
+    });
+
+    return () => {
+      unsubscribeHeadlines();
+      unsubscribeNews();
+      unsubscribeQuote();
+    };
+  }, []);
+
+  const convertToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const handleImageChange = async (e, type) => {
+    const file = e.target.files[0];
+    if (file) {
+      try {
+        const base64Image = await convertToBase64(file);
+        if (type === 'headline') {
+          setHeadline(prev => ({
+            ...prev,
+            image: base64Image,
+            imagePreview: URL.createObjectURL(file)
+          }));
+        } else {
+          setLocalNews(prev => ({
+            ...prev,
+            image: base64Image,
+            imagePreview: URL.createObjectURL(file)
+          }));
+        }
+      } catch (error) {
+        console.error('Error converting image:', error);
+        setMessage({
+          text: 'Failed to process image. Please try again.',
+          type: 'error'
+        });
+      }
+    }
+  };
+
   const handleHeadlineSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(prev => ({ ...prev, headline: true }));
     try {
-      // Using Firestore for headlines
-      const headlinesRef = collection(firestore, 'headlines');
-      await addDoc(headlinesRef, {
-        ...headline,
-        timestamp: new Date()
-      });
-      
-      setHeadline({ title: '', date: '', imageUrl: '' });
-      setMessage({
-        text: 'Headline added successfully!',
-        type: 'success'
-      });
+      if (editMode.headline) {
+        await updateDoc(doc(firestore, 'headlines', editMode.headline), {
+          title: headline.title,
+          date: headline.date,
+          image: headline.image,
+          timestamp: new Date()
+        });
+        setMessage({ text: 'Headline updated successfully!', type: 'success' });
+        setEditMode({ ...editMode, headline: null });
+      } else {
+        const headlinesRef = collection(firestore, 'headlines');
+        await addDoc(headlinesRef, {
+          title: headline.title,
+          date: headline.date,
+          image: headline.image,
+          timestamp: new Date()
+        });
+        
+        setMessage({
+          text: 'Headline added successfully!',
+          type: 'success'
+        });
+      }
+      setHeadline({ title: '', date: '', image: null, imagePreview: null });
     } catch (error) {
-      console.error('Error adding headline:', error);
-      setMessage({
-        text: 'Failed to add headline. Please try again.',
-        type: 'error'
-      });
+      console.error('Error with headline:', error);
+      setMessage({ text: 'Operation failed. Please try again.', type: 'error' });
     } finally {
       setIsLoading(prev => ({ ...prev, headline: false }));
-      setTimeout(() => setMessage({ text: '', type: '' }), 3000);
     }
   };
 
@@ -149,27 +250,35 @@ function Admin() {
     e.preventDefault();
     setIsLoading(prev => ({ ...prev, localNews: true }));
     try {
-      // Using Realtime Database for local news
-      const newsRef = ref(db, 'localNews');
-      await push(newsRef, {
-        ...localNews,
-        timestamp: Date.now()
-      });
-      
-      setLocalNews({ title: '', date: '', imageUrl: '' });
-      setMessage({
-        text: 'Local news added successfully!',
-        type: 'success'
-      });
+      if (editMode.localNews) {
+        await updateDoc(doc(firestore, 'localNews', editMode.localNews), {
+          title: localNews.title,
+          date: localNews.date,
+          image: localNews.image,
+          timestamp: new Date()
+        });
+        setMessage({ text: 'Local news updated successfully!', type: 'success' });
+        setEditMode({ ...editMode, localNews: null });
+      } else {
+        const newsRef = ref(db, 'localNews');
+        await push(newsRef, {
+          title: localNews.title,
+          date: localNews.date,
+          image: localNews.image,
+          timestamp: Date.now()
+        });
+        
+        setMessage({
+          text: 'Local news added successfully!',
+          type: 'success'
+        });
+      }
+      setLocalNews({ title: '', date: '', image: null, imagePreview: null });
     } catch (error) {
-      console.error('Error adding local news:', error);
-      setMessage({
-        text: 'Failed to add local news. Please try again.',
-        type: 'error'
-      });
+      console.error('Error with local news:', error);
+      setMessage({ text: 'Operation failed. Please try again.', type: 'error' });
     } finally {
       setIsLoading(prev => ({ ...prev, localNews: false }));
-      setTimeout(() => setMessage({ text: '', type: '' }), 3000);
     }
   };
 
@@ -196,6 +305,46 @@ function Admin() {
     }
   };
 
+  const handleDeleteHeadline = async (id) => {
+    try {
+      await deleteDoc(doc(firestore, 'headlines', id));
+      setMessage({ text: 'Headline deleted successfully!', type: 'success' });
+    } catch (error) {
+      console.error('Error deleting headline:', error);
+      setMessage({ text: 'Failed to delete headline', type: 'error' });
+    }
+  };
+
+  const handleDeleteLocalNews = async (id) => {
+    try {
+      await remove(ref(db, `localNews/${id}`));
+      setMessage({ text: 'Local news deleted successfully!', type: 'success' });
+    } catch (error) {
+      console.error('Error deleting local news:', error);
+      setMessage({ text: 'Failed to delete local news', type: 'error' });
+    }
+  };
+
+  const handleEditHeadline = async (headline) => {
+    setHeadline({
+      title: headline.title,
+      date: headline.date,
+      image: headline.image,
+      imagePreview: headline.image
+    });
+    setEditMode({ ...editMode, headline: headline.id });
+  };
+
+  const handleEditLocalNews = async (news) => {
+    setLocalNews({
+      title: news.title,
+      date: news.date,
+      image: news.image,
+      imagePreview: news.image
+    });
+    setEditMode({ ...editMode, localNews: news.id });
+  };
+
   if (!isAuthenticated) {
     return <div>Authenticating...</div>;
   }
@@ -212,7 +361,41 @@ function Admin() {
       )}
       
       <Section>
-        <h2>Add Headline</h2>
+        <h2>Current Headlines</h2>
+        <div style={{ marginBottom: '2rem' }}>
+          {currentContent.headlines.map(headline => (
+            <div key={headline.id} style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '1rem',
+              marginBottom: '1rem',
+              padding: '1rem',
+              border: '1px solid #ddd',
+              borderRadius: '4px'
+            }}>
+              <img 
+                src={headline.image} 
+                alt={headline.title} 
+                style={{ width: '100px', height: '100px', objectFit: 'cover' }}
+              />
+              <div style={{ flex: 1 }}>
+                <h3>{headline.title}</h3>
+                <p>{headline.date}</p>
+              </div>
+              <div>
+                <Button onClick={() => handleEditHeadline(headline)}>Edit</Button>
+                <Button 
+                  onClick={() => handleDeleteHeadline(headline.id)}
+                  style={{ backgroundColor: '#dc3545', marginLeft: '0.5rem' }}
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <h2>{editMode.headline ? 'Edit Headline' : 'Add Headline'}</h2>
         <Form onSubmit={handleHeadlineSubmit}>
           <Input
             type="text"
@@ -228,12 +411,14 @@ function Admin() {
             required
           />
           <Input
-            type="url"
-            placeholder="Image URL"
-            value={headline.imageUrl}
-            onChange={(e) => setHeadline({...headline, imageUrl: e.target.value})}
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleImageChange(e, 'headline')}
             required
           />
+          {headline.imagePreview && (
+            <ImagePreview src={headline.imagePreview} alt="Preview" />
+          )}
           <Button type="submit" disabled={isLoading.headline}>
             {isLoading.headline ? <LoadingSpinner /> : 'Add Headline'}
           </Button>
@@ -241,7 +426,41 @@ function Admin() {
       </Section>
 
       <Section>
-        <h2>Add Local News</h2>
+        <h2>Current Local News</h2>
+        <div style={{ marginBottom: '2rem' }}>
+          {currentContent.localNews.map(news => (
+            <div key={news.id} style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '1rem',
+              marginBottom: '1rem',
+              padding: '1rem',
+              border: '1px solid #ddd',
+              borderRadius: '4px'
+            }}>
+              <img 
+                src={news.image} 
+                alt={news.title} 
+                style={{ width: '100px', height: '100px', objectFit: 'cover' }}
+              />
+              <div style={{ flex: 1 }}>
+                <h3>{news.title}</h3>
+                <p>{news.date}</p>
+              </div>
+              <div>
+                <Button onClick={() => handleEditLocalNews(news)}>Edit</Button>
+                <Button 
+                  onClick={() => handleDeleteLocalNews(news.id)}
+                  style={{ backgroundColor: '#dc3545', marginLeft: '0.5rem' }}
+                >
+                  Delete
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <h2>{editMode.localNews ? 'Edit Local News' : 'Add Local News'}</h2>
         <Form onSubmit={handleLocalNewsSubmit}>
           <Input
             type="text"
@@ -257,12 +476,14 @@ function Admin() {
             required
           />
           <Input
-            type="url"
-            placeholder="Image URL"
-            value={localNews.imageUrl}
-            onChange={(e) => setLocalNews({...localNews, imageUrl: e.target.value})}
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleImageChange(e, 'localNews')}
             required
           />
+          {localNews.imagePreview && (
+            <ImagePreview src={localNews.imagePreview} alt="Preview" />
+          )}
           <Button type="submit" disabled={isLoading.localNews}>
             {isLoading.localNews ? <LoadingSpinner /> : 'Add Local News'}
           </Button>
@@ -270,6 +491,16 @@ function Admin() {
       </Section>
 
       <Section>
+        <h2>Current Quote</h2>
+        <div style={{ 
+          marginBottom: '2rem',
+          padding: '1rem',
+          border: '1px solid #ddd',
+          borderRadius: '4px'
+        }}>
+          <p>{currentContent.quote}</p>
+        </div>
+
         <h2>Update Quote</h2>
         <Form onSubmit={handleQuoteSubmit}>
           <textarea

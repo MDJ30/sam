@@ -10,10 +10,6 @@ import styled from "styled-components";
 import { ref, onValue } from 'firebase/database';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db, firestore } from '../config/firebase';
-import sample from "../sample.jpg";
-import pic from "../3.jpg";
-import sam from "../4.jpg";
-import lip from "../5.jpg";
 
 
 const ContentWrapper = styled.div`
@@ -148,29 +144,8 @@ const NewsCard = styled.div`
     }
   }
 `;
-// Add carousel data
-const initialHeadlineData = [
-  {
-    date: "September 14, 2025",
-    title: "An ancient and yet existent ministry",
-    image: sample
-  },
-  {
-    date: "September 7, 2025",
-    title: "The Call That Waited, The Heart That Answered",
-    image: pic
-  },
-  {
-    date: "August 31, 2025",
-    title: "Pilgrims of Hope for the Care of Creation",
-    image: sam
-  },
-  {
-    date: "August 24, 2025",
-    title: "Archdiocese of Davao to host 3,000 delegates for Divine Mercy Congress",
-    image: lip
-  }
-];
+// Remove initialHeadlineData or keep as fallback
+const initialHeadlineData = [];
 
 // Add new styled components
 const HeadlinesSection = styled.div`
@@ -290,7 +265,8 @@ function Home() {
       snapshot.forEach(doc => {
         headlines.push({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
+          // No need to transform image field as it's already Base64
         });
       });
       setHeadlineData(headlines);
@@ -303,7 +279,10 @@ function Home() {
     const unsubscribeNews = onValue(newsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        const news = Object.values(data);
+        const news = Object.values(data).map(item => ({
+          ...item,
+          // No need to transform image field as it's already Base64
+        }));
         setLocalNewsData(news);
       }
     }, (error) => {
@@ -358,7 +337,7 @@ function Home() {
                 {headlineData.map((headline, index) => (
                   <CarouselImage
                     key={headline.id || index}
-                    src={headline.imageUrl} // Changed from image to imageUrl
+                    src={headline.image} // Changed from imageUrl to image
                     alt={headline.title}
                     active={activeIndex === index}
                   />
@@ -372,7 +351,7 @@ function Home() {
             <LocalNewsGrid>
               {localNewsData.map((news, index) => (
                 <NewsCard key={index}>
-                  <img src={news.imageUrl} alt={`News${index + 1}`}/> // Changed from image to imageUrl
+                  <img src={news.image} alt={`News${index + 1}`}/> {/* Changed from imageUrl to image */}
                   <div className="info">
                     <span>{formatDate(news.date)}</span>
                     <h3>{news.title}</h3>
