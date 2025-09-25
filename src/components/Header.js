@@ -183,8 +183,6 @@ const Header = ({ isMenuOpen, setIsMenuOpen }) => {
         setActiveLink("news");
       } else if (location.pathname === "/team") {
         setActiveLink("team");
-      } else if (location.pathname === "/videos") {
-        setActiveLink("videos");
       } else {
         setActiveLink("");
       }
@@ -275,14 +273,7 @@ const Header = ({ isMenuOpen, setIsMenuOpen }) => {
               Team
             </StyledNavLink>
           </li>
-          <li>
-            <StyledNavLink 
-              to="/videos"
-              onClick={() => handleNavClick('videos')}
-            >
-              Videos
-            </StyledNavLink>
-          </li>
+          
         <li>
   <StyledNavLink
     as="a"

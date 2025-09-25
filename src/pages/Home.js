@@ -7,6 +7,9 @@ import {
 } from "../styles/Home";
 import Footer from "../components/Footer";
 import styled from "styled-components";
+import { ref, onValue } from 'firebase/database';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db, firestore } from '../config/firebase';
 import sample from "../sample.jpg";
 import pic from "../3.jpg";
 import sam from "../4.jpg";
@@ -106,29 +109,47 @@ const NewsCard = styled.div`
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  transition: all 0.3s ease-in-out;
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+
+    img {
+      transform: scale(1.1);
+    }
+
+    h3 {
+      color: #007bff;
+    }
+  }
 
   img {
     width: 100%;
     height: 180px;
     object-fit: cover;
+    transition: transform 0.3s ease-in-out;
   }
 
   .info {
     padding: 1rem;
+    
     span {
       font-size: 0.85rem;
       color: gray;
     }
+    
     h3 {
       margin-top: 0.3rem;
       font-size: 1rem;
       color: #222;
+      transition: color 0.3s ease;
     }
   }
 `;
-
 // Add carousel data
-const headlineData = [
+const initialHeadlineData = [
   {
     date: "September 14, 2025",
     title: "An ancient and yet existent ministry",
@@ -184,12 +205,25 @@ const CarouselImage = styled.img`
   left: 0;
 `;
 
+// Add this helper function at the top level
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric'
+  });
+};
+
 
 function Home() {
   const [heroHeight, setHeroHeight] = useState(400);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [headlineData, setHeadlineData] = useState(initialHeadlineData);
+  const [localNewsData, setLocalNewsData] = useState([]);
+  const [quoteText, setQuoteText] = useState('');
 
   useEffect(() => {
     const handleResize = () => {
@@ -243,9 +277,56 @@ function Home() {
       setActiveIndex((current) => 
         current === headlineData.length - 1 ? 0 : current + 1
       );
-    }, 1000);
+    }, 2000);
 
     return () => clearInterval(interval);
+  }, [headlineData.length]);
+
+  useEffect(() => {
+    // Fetch headlines from Firestore
+    const headlinesRef = collection(firestore, 'headlines');
+    const unsubscribeHeadlines = onSnapshot(headlinesRef, (snapshot) => {
+      const headlines = [];
+      snapshot.forEach(doc => {
+        headlines.push({
+          id: doc.id,
+          ...doc.data()
+        });
+      });
+      setHeadlineData(headlines);
+    }, (error) => {
+      console.error("Error fetching headlines:", error);
+    });
+
+    // Fetch local news from Realtime Database
+    const newsRef = ref(db, 'localNews');
+    const unsubscribeNews = onValue(newsRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const news = Object.values(data);
+        setLocalNewsData(news);
+      }
+    }, (error) => {
+      console.error("Error fetching local news:", error);
+    });
+
+    // Fetch quote from Realtime Database
+    const quoteRef = ref(db, 'quote');
+    const unsubscribeQuote = onValue(quoteRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        setQuoteText(data);
+      }
+    }, (error) => {
+      console.error("Error fetching quote:", error);
+    });
+
+    // Cleanup subscriptions
+    return () => {
+      unsubscribeHeadlines();
+      unsubscribeNews();
+      unsubscribeQuote();
+    };
   }, []);
 
   return (
@@ -254,18 +335,7 @@ function Home() {
       <Hero height={heroHeight}>
       </Hero>
       <QuoteSection>
-        <p>
-          Do not be troubled or weighed down with grief.
-          Do not fear any illness or vexation, anxiety or pain
-          Am I not here who am your Mother?
-          Are you not under my shadow and protection?
-          Am I not your fountain of life?
-          Are you not in the folds of my mantle?
-          In the crossing of my arms?
-          Is there anything else you need?
-
-          Our Lady of Guadalupe to Juan Diego
-        </p>
+        <p>{quoteText}</p>
       </QuoteSection>
       <ContentWrapper>
         <div>
@@ -275,11 +345,11 @@ function Home() {
               <Headlines>
                 {headlineData.map((headline, index) => (
                   <HeadlineCard 
-                    key={index}
+                    key={headline.id || index}
                     className={activeIndex === index ? 'active' : ''}
                     onClick={() => setActiveIndex(index)}
                   >
-                    <span>{headline.date}</span>
+                    <span>{formatDate(headline.date)}</span>
                     <h3>{headline.title}</h3>
                   </HeadlineCard>
                 ))}
@@ -287,8 +357,8 @@ function Home() {
               <CarouselContainer>
                 {headlineData.map((headline, index) => (
                   <CarouselImage
-                    key={index}
-                    src={headline.image}
+                    key={headline.id || index}
+                    src={headline.imageUrl} // Changed from image to imageUrl
                     alt={headline.title}
                     active={activeIndex === index}
                   />
@@ -300,34 +370,15 @@ function Home() {
           <Section>
             <SectionTitle>LOCAL NEWS</SectionTitle>
             <LocalNewsGrid>
-              <NewsCard>
-                <img src={sample} alt="News1"/>
-                <div className="info">
-                  <span>September 14, 2025</span>
-                  <h3>Lakbay Laum Journey in Our Lady of Guadalupe Parish</h3>
-                </div>
-              </NewsCard>
-              <NewsCard>
-                <img src={pic} alt="News2"/>
-                <div className="info">
-                  <span>September 14, 2025</span>
-                  <h3>HCM STEM Synergy: Igniting Minds, Empowering Teams</h3>
-                </div>
-              </NewsCard>
-              <NewsCard>
-                <img src={sam} alt="News3"/>
-                <div className="info">
-                  <span>September 14, 2025</span>
-                  <h3>Protect Environment Program in School</h3>
-                </div>
-              </NewsCard>
-              <NewsCard>
-                <img src={lip} alt="News4"/>
-                <div className="info">
-                  <span>September 14, 2025</span>
-                  <h3>Community Gathering and Formation</h3>
-                </div>
-              </NewsCard>
+              {localNewsData.map((news, index) => (
+                <NewsCard key={index}>
+                  <img src={news.imageUrl} alt={`News${index + 1}`}/> // Changed from image to imageUrl
+                  <div className="info">
+                    <span>{formatDate(news.date)}</span>
+                    <h3>{news.title}</h3>
+                  </div>
+                </NewsCard>
+              ))}
             </LocalNewsGrid>
           </Section>
         </div>
