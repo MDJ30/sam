@@ -101,30 +101,19 @@ const Footer = () => {
               DXGN 89.9 Spirit FM is the official Catholic radio station owned
               and operated by the Archdiocese of Davao.
             </p>
-            <p>
-              For your Donations and Pledges, Please deposit it to:
-              <br />
-              <br />
-              BDO Peso Account No. 002700333767
-              <br />
-              Dollar Account No. 102700333175
-              <br />
-              Swift Code: BNORPHMM
-            </p>
           </FooterColumn>
 
           <FooterColumn>
             <h4>Visit Us</h4>
             <p>
               <strong>Address</strong> <br />
-              San Pablo Parish Compound, Juna Subdivision, Matina, Davao City
-              8000 Philippines
+              PHASE 6, DECA HOMES, TUGBOK DISTRICT, DAVAO CITY
             </p>
             <p>
-              <strong>Contact #</strong> +63 82 2967826 <br />
-              <strong>Text Line</strong> +639497887395 <br />
-              <strong>Email</strong> davao.spiritfm@gmail.com <br />
-              <strong>Hours</strong> Monday – Saturday: 8:00 AM – 5:00 PM
+              <strong>Contact #</strong>09055162157<br />
+              <strong>Tel #</strong>287-7843<br />
+              <strong>Priest's Hours:</strong> WEDNESDAY-THURSDAY: 9:00AM-11:30AM<br />
+              <strong>Office Hours:</strong> TUESDAY-SUNDAY: 9:00AM-4:00PM
             </p>
           </FooterColumn>
 
@@ -141,8 +130,7 @@ const Footer = () => {
       </ResponsiveWrapper>
 
       <FooterBottom>
-        Copyright © 2025 Davao Verbum Dei Media Foundation, Inc. - DXGN 89.9
-        Spirit FM.
+        Copyright © 2025 OUR LADY OF GUADALUPE PARISH. All rights reserved.
       </FooterBottom>
     </FooterWrapper>
   );
