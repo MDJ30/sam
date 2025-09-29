@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ref, push, set, remove, onValue } from 'firebase/database'; // Added onValue here
-import { collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db, firestore } from '../config/firebase';
 import styled from 'styled-components';
 
@@ -108,12 +108,12 @@ function Admin() {
   });
   const [currentContent, setCurrentContent] = useState({
     headlines: [],
-    localNews: [],
+    articles: [], // Changed from localNews to articles
     quote: ''
   });
   const [editMode, setEditMode] = useState({
     headline: null,
-    localNews: null
+    article: null // Changed from localNews to article
   });
   const [article, setArticle] = useState({
     title: '',
@@ -156,18 +156,18 @@ function Admin() {
       setCurrentContent(prev => ({ ...prev, headlines }));
     });
 
-    // Fetch local news from Realtime Database
-    const newsRef = ref(db, 'localNews');
-    const unsubscribeNews = onValue(newsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const news = Object.entries(data).map(([key, value]) => ({
-          id: key,
-          ...value
-        }));
-        setCurrentContent(prev => ({ ...prev, localNews: news }));
+    // Fetch articles from Firestore
+    const articlesRef = collection(firestore, 'articles');
+    const unsubscribeArticles = onSnapshot(
+      query(articlesRef, orderBy('timestamp', 'desc')),
+      (snapshot) => {
+        const articles = [];
+        snapshot.forEach(doc => {
+          articles.push({ id: doc.id, ...doc.data() });
+        });
+        setCurrentContent(prev => ({ ...prev, articles }));
       }
-    });
+    );
 
     // Fetch quote
     const quoteRef = ref(db, 'quote');
@@ -178,7 +178,7 @@ function Admin() {
 
     return () => {
       unsubscribeHeadlines();
-      unsubscribeNews();
+      unsubscribeArticles();
       unsubscribeQuote();
     };
   }, []);
@@ -325,48 +325,72 @@ function Admin() {
     e.preventDefault();
     setIsLoading(prev => ({ ...prev, article: true }));
     try {
-      // First add the article
-      const articlesRef = collection(firestore, 'articles');
-      const articleDoc = await addDoc(articlesRef, {
-        title: article.title,
-        date: article.date,
-        image: article.image,
-        content: article.content,
-        category: article.category,
-        author: article.author,
-        timestamp: new Date()
-      });
+      if (editMode.article) {
+        // Update existing article
+        await updateDoc(doc(firestore, 'articles', editMode.article), {
+          title: article.title,
+          date: article.date,
+          image: article.image,
+          content: article.content,
+          category: article.category,
+          author: article.author,
+          timestamp: new Date()
+        });
 
-      // Then add to headlines
-      const headlinesRef = collection(firestore, 'headlines');
-      await addDoc(headlinesRef, {
-        title: article.title,
-        date: article.date,
-        image: article.image,
-        articleId: articleDoc.id, // Reference to the article
-        timestamp: new Date()
-      });
+        // Update corresponding headline if it exists
+        const relatedHeadline = currentContent.headlines.find(h => h.articleId === editMode.article);
+        if (relatedHeadline) {
+          await updateDoc(doc(firestore, 'headlines', relatedHeadline.id), {
+            title: article.title,
+            date: article.date,
+            image: article.image,
+            timestamp: new Date()
+          });
+        }
 
-      setArticle({
-        title: '',
-        date: '',
-        image: null,
-        imagePreview: null,
-        content: '',
-        category: '',
-        author: ''
-      });
+        setMessage({ text: 'Article updated successfully!', type: 'success' });
+        setEditMode({ ...editMode, article: null });
+      } else {
+        // First add the article
+        const articlesRef = collection(firestore, 'articles');
+        const articleDoc = await addDoc(articlesRef, {
+          title: article.title,
+          date: article.date,
+          image: article.image,
+          content: article.content,
+          category: article.category,
+          author: article.author,
+          timestamp: new Date()
+        });
 
-      setMessage({
-        text: 'Article published successfully!',
-        type: 'success'
-      });
+        // Then add to headlines
+        const headlinesRef = collection(firestore, 'headlines');
+        await addDoc(headlinesRef, {
+          title: article.title,
+          date: article.date,
+          image: article.image,
+          articleId: articleDoc.id, // Reference to the article
+          timestamp: new Date()
+        });
+
+        setArticle({
+          title: '',
+          date: '',
+          image: null,
+          imagePreview: null,
+          content: '',
+          category: '',
+          author: ''
+        });
+
+        setMessage({
+          text: 'Article published successfully!',
+          type: 'success'
+        });
+      }
     } catch (error) {
-      console.error('Error publishing article:', error);
-      setMessage({
-        text: 'Failed to publish article. Please try again.',
-        type: 'error'
-      });
+      console.error('Error with article:', error);
+      setMessage({ text: 'Operation failed. Please try again.', type: 'error' });
     } finally {
       setIsLoading(prev => ({ ...prev, article: false }));
     }
@@ -382,13 +406,18 @@ function Admin() {
     }
   };
 
-  const handleDeleteLocalNews = async (id) => {
+  const handleDeleteArticle = async (id) => {
     try {
-      await remove(ref(db, `localNews/${id}`));
-      setMessage({ text: 'Local news deleted successfully!', type: 'success' });
+      await deleteDoc(doc(firestore, 'articles', id));
+      // Also delete the corresponding headline if it exists
+      const headlineToDelete = currentContent.headlines.find(h => h.articleId === id);
+      if (headlineToDelete) {
+        await deleteDoc(doc(firestore, 'headlines', headlineToDelete.id));
+      }
+      setMessage({ text: 'Article deleted successfully!', type: 'success' });
     } catch (error) {
-      console.error('Error deleting local news:', error);
-      setMessage({ text: 'Failed to delete local news', type: 'error' });
+      console.error('Error deleting article:', error);
+      setMessage({ text: 'Failed to delete article', type: 'error' });
     }
   };
 
@@ -402,14 +431,17 @@ function Admin() {
     setEditMode({ ...editMode, headline: headline.id });
   };
 
-  const handleEditLocalNews = async (news) => {
-    setLocalNews({
-      title: news.title,
-      date: news.date,
-      image: news.image,
-      imagePreview: news.image
+  const handleEditArticle = (articleData) => {
+    setArticle({
+      title: articleData.title,
+      date: articleData.date,
+      image: articleData.image,
+      imagePreview: articleData.image,
+      content: articleData.content,
+      category: articleData.category,
+      author: articleData.author
     });
-    setEditMode({ ...editMode, localNews: news.id });
+    setEditMode({ ...editMode, article: articleData.id });
   };
 
   if (!isAuthenticated) {
@@ -493,10 +525,10 @@ function Admin() {
       </Section>
 
       <Section>
-        <h2>Current Local News</h2>
+        <h2>Published Articles</h2>
         <div style={{ marginBottom: '2rem' }}>
-          {currentContent.localNews.map(news => (
-            <div key={news.id} style={{ 
+          {currentContent.articles.map(article => (
+            <div key={article.id} style={{ 
               display: 'flex', 
               alignItems: 'center', 
               gap: '1rem',
@@ -506,18 +538,20 @@ function Admin() {
               borderRadius: '4px'
             }}>
               <img 
-                src={news.image} 
-                alt={news.title} 
+                src={article.image} 
+                alt={article.title} 
                 style={{ width: '100px', height: '100px', objectFit: 'cover' }}
               />
               <div style={{ flex: 1 }}>
-                <h3>{news.title}</h3>
-                <p>{news.date}</p>
+                <h3>{article.title}</h3>
+                <p>{article.date}</p>
+                <p>Category: {article.category}</p>
+                <p>Author: {article.author}</p>
               </div>
               <div>
-                <Button onClick={() => handleEditLocalNews(news)}>Edit</Button>
+                <Button onClick={() => handleEditArticle(article)}>Edit</Button>
                 <Button 
-                  onClick={() => handleDeleteLocalNews(news.id)}
+                  onClick={() => handleDeleteArticle(article.id)}
                   style={{ backgroundColor: '#dc3545', marginLeft: '0.5rem' }}
                 >
                   Delete
@@ -527,63 +561,7 @@ function Admin() {
           ))}
         </div>
 
-        <h2>{editMode.localNews ? 'Edit Local News' : 'Add Local News'}</h2>
-        <Form onSubmit={handleLocalNewsSubmit}>
-          <Input
-            type="text"
-            placeholder="Title"
-            value={localNews.title}
-            onChange={(e) => setLocalNews({...localNews, title: e.target.value})}
-            required
-          />
-          <Input
-            type="date"
-            value={localNews.date}
-            onChange={(e) => setLocalNews({...localNews, date: e.target.value})}
-            required
-          />
-          <Input
-            type="file"
-            accept="image/*"
-            onChange={(e) => handleImageChange(e, 'localNews')}
-            required
-          />
-          {localNews.imagePreview && (
-            <ImagePreview src={localNews.imagePreview} alt="Preview" />
-          )}
-          <Button type="submit" disabled={isLoading.localNews}>
-            {isLoading.localNews ? <LoadingSpinner /> : 'Add Local News'}
-          </Button>
-        </Form>
-      </Section>
-
-      <Section>
-        <h2>Current Quote</h2>
-        <div style={{ 
-          marginBottom: '2rem',
-          padding: '1rem',
-          border: '1px solid #ddd',
-          borderRadius: '4px'
-        }}>
-          <p>{currentContent.quote}</p>
-        </div>
-
-        <h2>Update Quote</h2>
-        <Form onSubmit={handleQuoteSubmit}>
-          <textarea
-            value={quote}
-            onChange={(e) => setQuote(e.target.value)}
-            rows="4"
-            placeholder="Enter quote"
-          />
-          <Button type="submit" disabled={isLoading.quote}>
-            {isLoading.quote ? <LoadingSpinner /> : 'Update Quote'}
-          </Button>
-        </Form>
-      </Section>
-
-      <Section>
-        <h2>Add New Article</h2>
+        <h2>{editMode.article ? 'Edit Article' : 'Add New Article'}</h2>
         <Form onSubmit={handleArticleSubmit}>
           <Input
             type="text"
@@ -636,6 +614,31 @@ function Admin() {
           />
           <Button type="submit" disabled={isLoading.article}>
             {isLoading.article ? <LoadingSpinner /> : 'Publish Article'}
+          </Button>
+        </Form>
+      </Section>
+
+      <Section>
+        <h2>Current Quote</h2>
+        <div style={{ 
+          marginBottom: '2rem',
+          padding: '1rem',
+          border: '1px solid #ddd',
+          borderRadius: '4px'
+        }}>
+          <p>{currentContent.quote}</p>
+        </div>
+
+        <h2>Update Quote</h2>
+        <Form onSubmit={handleQuoteSubmit}>
+          <textarea
+            value={quote}
+            onChange={(e) => setQuote(e.target.value)}
+            rows="4"
+            placeholder="Enter quote"
+          />
+          <Button type="submit" disabled={isLoading.quote}>
+            {isLoading.quote ? <LoadingSpinner /> : 'Update Quote'}
           </Button>
         </Form>
       </Section>

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { FaSearch } from 'react-icons/fa';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { firestore } from '../config/firebase';
 import logo from "../2.png";
 import styled from 'styled-components';
 import {
@@ -144,9 +146,48 @@ const MobileMenuOverlay = styled.div`
   }
 `;
 
+const SearchResults = styled.div`
+  position: absolute;
+  top: 100%;
+  right: 25px;
+  width: 200px;
+  max-height: 300px;
+  overflow-y: auto;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  z-index: 1000;
+  display: ${({ show }) => (show ? 'block' : 'none')};
+
+  @media (max-width: 768px) {
+    right: 50%;
+    transform: translateX(50%);
+    width: 80%;
+    max-width: 300px;
+  }
+`;
+
+const SearchResultItem = styled.div`
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: #f5f5f5;
+  }
+
+  &:not(:last-child) {
+    border-bottom: 1px solid #eee;
+  }
+`;
+
 const Header = ({ isMenuOpen, setIsMenuOpen }) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeLink, setActiveLink] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [articles, setArticles] = useState([]);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -195,6 +236,49 @@ const Header = ({ isMenuOpen, setIsMenuOpen }) => {
   return () => window.removeEventListener("scroll", handleScroll);
 }, [location]);
 
+
+  // Add this new useEffect for fetching articles
+  useEffect(() => {
+    const articlesRef = collection(firestore, 'articles');
+    const unsubscribe = onSnapshot(
+      query(articlesRef, orderBy('timestamp', 'desc')),
+      (snapshot) => {
+        const articlesData = [];
+        snapshot.forEach(doc => {
+          articlesData.push({
+            id: doc.id,
+            ...doc.data()
+          });
+        });
+        setArticles(articlesData);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  // Add search handler
+  const handleSearch = (e) => {
+    const query = e.target.value.toLowerCase();
+    setSearchQuery(query);
+
+    if (query.length > 0) {
+      const filtered = articles.filter(article =>
+        article.title.toLowerCase().includes(query)
+      );
+      setSearchResults(filtered);
+    } else {
+      setSearchResults([]);
+    }
+  };
+
+  // Add result click handler
+  const handleResultClick = (articleId) => {
+    setSearchQuery('');
+    setSearchResults([]);
+    setIsSearchOpen(false);
+    navigate(`/article/${articleId}`);
+  };
 
   const handleNavClick = (linkName) => {
     setActiveLink(linkName);
@@ -292,11 +376,23 @@ const Header = ({ isMenuOpen, setIsMenuOpen }) => {
             <SearchContainer>
               <SearchBar
                 type="text"
-                placeholder="Search..."
+                placeholder="Search articles..."
                 isOpen={isSearchOpen}
                 id="searchInput"
+                value={searchQuery}
+                onChange={handleSearch}
               />
               <SearchIcon onClick={handleSearchClick} />
+              <SearchResults show={searchResults.length > 0 && isSearchOpen}>
+                {searchResults.map(article => (
+                  <SearchResultItem
+                    key={article.id}
+                    onClick={() => handleResultClick(article.id)}
+                  >
+                    {article.title}
+                  </SearchResultItem>
+                ))}
+              </SearchResults>
             </SearchContainer>
           </li>
         </NavLinks>

@@ -287,23 +287,29 @@ function Home() {
       }
     );
 
-    // Fetch local news from Realtime Database
-    const newsRef = ref(db, 'localNews');
-    const unsubscribeNews = onValue(newsRef, (snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        const news = Object.entries(data)
-          .map(([key, value]) => ({
-            id: key,
-            ...value,
-          }))
-          .sort((a, b) => b.timestamp - a.timestamp) // Sort by timestamp descending
-          .slice(0, 4); // Get only the 4 latest news items
-        setLocalNewsData(news);
+    // Replace local news fetch with articles fetch from Firestore
+    const articlesRef = collection(firestore, 'articles');
+    const unsubscribeArticles = onSnapshot(
+      query(
+        articlesRef,
+        orderBy('timestamp', 'desc'),
+        limit(4)
+      ),
+      (snapshot) => {
+        const articles = [];
+        snapshot.forEach(doc => {
+          articles.push({
+            id: doc.id,
+            articleId: doc.id, // Set articleId to the document id
+            ...doc.data(),
+          });
+        });
+        setLocalNewsData(articles);
+      },
+      (error) => {
+        console.error("Error fetching articles:", error);
       }
-    }, (error) => {
-      console.error("Error fetching local news:", error);
-    });
+    );
 
     // Fetch quote from Realtime Database
     const quoteRef = ref(db, 'quote');
@@ -319,7 +325,7 @@ function Home() {
     // Cleanup subscriptions
     return () => {
       unsubscribeHeadlines();
-      unsubscribeNews();
+      unsubscribeArticles();
       unsubscribeQuote();
     };
   }, []);
@@ -377,16 +383,16 @@ function Home() {
           <Section>
             <SectionTitle>NEWS</SectionTitle>
             <LocalNewsGrid>
-              {localNewsData.map((news, index) => (
+              {localNewsData.map((article, index) => (
                 <NewsCard 
-                  key={news.id || index}
-                  onClick={() => handleArticleClick(news)}
-                  style={{ cursor: news.articleId ? 'pointer' : 'default' }}
+                  key={article.id}
+                  onClick={() => handleArticleClick(article)}
+                  style={{ cursor: 'pointer' }}
                 >
-                  <img src={news.image} alt={`News${index + 1}`}/>
+                  <img src={article.image} alt={article.title}/>
                   <div className="info">
-                    <span>{formatDate(news.date)}</span>
-                    <h3>{news.title}</h3>
+                    <span>{formatDate(article.date)}</span>
+                    <h3>{article.title}</h3>
                   </div>
                 </NewsCard>
               ))}

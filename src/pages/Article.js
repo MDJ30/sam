@@ -58,6 +58,15 @@ const ArticleContent = styled.div`
   padding: 0 1.5rem;
 `;
 
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+};
+
 function Article() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [articleData, setArticleData] = useState(null);
@@ -104,7 +113,8 @@ function Article() {
         <ArticleContent>
           <Title>{articleData.title}</Title>
           <Meta>
-            Posted on <span>{articleData.date}</span> in{" "}
+            Posted on{" "}
+            <span>{formatDate(articleData.date)}</span> in{" "}
             <span>{articleData.category}</span> by{" "}
             <span>{articleData.author}</span>
           </Meta>
