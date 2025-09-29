@@ -99,7 +99,8 @@ function Admin() {
   const [isLoading, setIsLoading] = useState({
     headline: false,
     localNews: false,
-    quote: false
+    quote: false,
+    article: false
   });
   const [message, setMessage] = useState({
     text: '',
@@ -113,6 +114,15 @@ function Admin() {
   const [editMode, setEditMode] = useState({
     headline: null,
     localNews: null
+  });
+  const [article, setArticle] = useState({
+    title: '',
+    date: '',
+    image: null,
+    imagePreview: null,
+    content: '',
+    category: '',
+    author: ''
   });
 
   useEffect(() => {
@@ -193,8 +203,14 @@ function Admin() {
             image: base64Image,
             imagePreview: URL.createObjectURL(file)
           }));
-        } else {
+        } else if (type === 'localNews') {
           setLocalNews(prev => ({
+            ...prev,
+            image: base64Image,
+            imagePreview: URL.createObjectURL(file)
+          }));
+        } else {
+          setArticle(prev => ({
             ...prev,
             image: base64Image,
             imagePreview: URL.createObjectURL(file)
@@ -302,6 +318,57 @@ function Admin() {
     } finally {
       setIsLoading(prev => ({ ...prev, quote: false }));
       setTimeout(() => setMessage({ text: '', type: '' }), 3000);
+    }
+  };
+
+  const handleArticleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(prev => ({ ...prev, article: true }));
+    try {
+      // First add the article
+      const articlesRef = collection(firestore, 'articles');
+      const articleDoc = await addDoc(articlesRef, {
+        title: article.title,
+        date: article.date,
+        image: article.image,
+        content: article.content,
+        category: article.category,
+        author: article.author,
+        timestamp: new Date()
+      });
+
+      // Then add to headlines
+      const headlinesRef = collection(firestore, 'headlines');
+      await addDoc(headlinesRef, {
+        title: article.title,
+        date: article.date,
+        image: article.image,
+        articleId: articleDoc.id, // Reference to the article
+        timestamp: new Date()
+      });
+
+      setArticle({
+        title: '',
+        date: '',
+        image: null,
+        imagePreview: null,
+        content: '',
+        category: '',
+        author: ''
+      });
+
+      setMessage({
+        text: 'Article published successfully!',
+        type: 'success'
+      });
+    } catch (error) {
+      console.error('Error publishing article:', error);
+      setMessage({
+        text: 'Failed to publish article. Please try again.',
+        type: 'error'
+      });
+    } finally {
+      setIsLoading(prev => ({ ...prev, article: false }));
     }
   };
 
@@ -511,6 +578,64 @@ function Admin() {
           />
           <Button type="submit" disabled={isLoading.quote}>
             {isLoading.quote ? <LoadingSpinner /> : 'Update Quote'}
+          </Button>
+        </Form>
+      </Section>
+
+      <Section>
+        <h2>Add New Article</h2>
+        <Form onSubmit={handleArticleSubmit}>
+          <Input
+            type="text"
+            placeholder="Title"
+            value={article.title}
+            onChange={(e) => setArticle({...article, title: e.target.value})}
+            required
+          />
+          <Input
+            type="date"
+            value={article.date}
+            onChange={(e) => setArticle({...article, date: e.target.value})}
+            required
+          />
+          <Input
+            type="text"
+            placeholder="Category (e.g., Ronda Parokya, Youth Corner)"
+            value={article.category}
+            onChange={(e) => setArticle({...article, category: e.target.value})}
+            required
+          />
+          <Input
+            type="text"
+            placeholder="Author"
+            value={article.author}
+            onChange={(e) => setArticle({...article, author: e.target.value})}
+            required
+          />
+          <Input
+            type="file"
+            accept="image/*"
+            onChange={(e) => handleImageChange(e, 'article')}
+            required
+          />
+          {article.imagePreview && (
+            <ImagePreview src={article.imagePreview} alt="Preview" />
+          )}
+          <textarea
+            placeholder="Article content..."
+            value={article.content}
+            onChange={(e) => setArticle({...article, content: e.target.value})}
+            rows="10"
+            style={{
+              width: '100%',
+              padding: '0.5rem',
+              borderRadius: '4px',
+              border: '1px solid #ddd'
+            }}
+            required
+          />
+          <Button type="submit" disabled={isLoading.article}>
+            {isLoading.article ? <LoadingSpinner /> : 'Publish Article'}
           </Button>
         </Form>
       </Section>

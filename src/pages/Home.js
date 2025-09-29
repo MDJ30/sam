@@ -8,8 +8,10 @@ import {
 import Footer from "../components/Footer";
 import styled from "styled-components";
 import { ref, onValue } from 'firebase/database';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import { db, firestore } from '../config/firebase';
+import { useNavigate } from 'react-router-dom';
+
 
 
 const ContentWrapper = styled.div`
@@ -69,6 +71,8 @@ const HeadlineCard = styled.div`
 
   &:hover {
     background-color: #f8f9fa;
+    transform: translateY(-2px);
+    transition: transform 0.2s ease;
   }
 
   h3 {
@@ -78,7 +82,7 @@ const HeadlineCard = styled.div`
     cursor: pointer;
 
     &:hover {
-      color: #007bff;
+      color: #0056b3;
     }
   }
 
@@ -178,6 +182,7 @@ const CarouselImage = styled.img`
   position: absolute;
   top: 0;
   left: 0;
+  cursor: pointer;
 `;
 
 // Add this helper function at the top level
@@ -199,6 +204,7 @@ function Home() {
   const [headlineData, setHeadlineData] = useState(initialHeadlineData);
   const [localNewsData, setLocalNewsData] = useState([]);
   const [quoteText, setQuoteText] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleResize = () => {
@@ -260,29 +266,39 @@ function Home() {
   useEffect(() => {
     // Fetch headlines from Firestore
     const headlinesRef = collection(firestore, 'headlines');
-    const unsubscribeHeadlines = onSnapshot(headlinesRef, (snapshot) => {
-      const headlines = [];
-      snapshot.forEach(doc => {
-        headlines.push({
-          id: doc.id,
-          ...doc.data(),
-          // No need to transform image field as it's already Base64
+    const unsubscribeHeadlines = onSnapshot(
+      query(
+        headlinesRef,
+        orderBy('timestamp', 'desc'),
+        limit(3)
+      ),
+      (snapshot) => {
+        const headlines = [];
+        snapshot.forEach(doc => {
+          headlines.push({
+            id: doc.id,
+            ...doc.data(),
+          });
         });
-      });
-      setHeadlineData(headlines);
-    }, (error) => {
-      console.error("Error fetching headlines:", error);
-    });
+        setHeadlineData(headlines);
+      },
+      (error) => {
+        console.error("Error fetching headlines:", error);
+      }
+    );
 
     // Fetch local news from Realtime Database
     const newsRef = ref(db, 'localNews');
     const unsubscribeNews = onValue(newsRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        const news = Object.values(data).map(item => ({
-          ...item,
-          // No need to transform image field as it's already Base64
-        }));
+        const news = Object.entries(data)
+          .map(([key, value]) => ({
+            id: key,
+            ...value,
+          }))
+          .sort((a, b) => b.timestamp - a.timestamp) // Sort by timestamp descending
+          .slice(0, 4); // Get only the 4 latest news items
         setLocalNewsData(news);
       }
     }, (error) => {
@@ -308,6 +324,12 @@ function Home() {
     };
   }, []);
 
+  const handleArticleClick = (article) => {
+    if (article.articleId) {
+      navigate(`/article/${article.articleId}`);
+    }
+  };
+
   return (
     <>
       <Header isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
@@ -326,7 +348,11 @@ function Home() {
                   <HeadlineCard 
                     key={headline.id || index}
                     className={activeIndex === index ? 'active' : ''}
-                    onClick={() => setActiveIndex(index)}
+                    onClick={() => {
+                      setActiveIndex(index);
+                      handleArticleClick(headline);
+                    }}
+                    style={{ cursor: headline.articleId ? 'pointer' : 'default' }}
                   >
                     <span>{formatDate(headline.date)}</span>
                     <h3>{headline.title}</h3>
@@ -337,9 +363,11 @@ function Home() {
                 {headlineData.map((headline, index) => (
                   <CarouselImage
                     key={headline.id || index}
-                    src={headline.image} // Changed from imageUrl to image
+                    src={headline.image}
                     alt={headline.title}
                     active={activeIndex === index}
+                    onClick={() => handleArticleClick(headline)}
+                    style={{ cursor: headline.articleId ? 'pointer' : 'default' }}
                   />
                 ))}
               </CarouselContainer>
@@ -347,11 +375,15 @@ function Home() {
           </Section>
 
           <Section>
-            <SectionTitle>LOCAL NEWS</SectionTitle>
+            <SectionTitle>NEWS</SectionTitle>
             <LocalNewsGrid>
               {localNewsData.map((news, index) => (
-                <NewsCard key={index}>
-                  <img src={news.image} alt={`News${index + 1}`}/> {/* Changed from imageUrl to image */}
+                <NewsCard 
+                  key={news.id || index}
+                  onClick={() => handleArticleClick(news)}
+                  style={{ cursor: news.articleId ? 'pointer' : 'default' }}
+                >
+                  <img src={news.image} alt={`News${index + 1}`}/>
                   <div className="info">
                     <span>{formatDate(news.date)}</span>
                     <h3>{news.title}</h3>

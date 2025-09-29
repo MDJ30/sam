@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { FaSearch } from 'react-icons/fa';
 import logo from "../2.png";
 import styled from 'styled-components';
@@ -148,6 +148,7 @@ const Header = ({ isMenuOpen, setIsMenuOpen }) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeLink, setActiveLink] = useState('');
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Scroll to top on page refresh
   useEffect(() => {
@@ -220,6 +221,14 @@ const Header = ({ isMenuOpen, setIsMenuOpen }) => {
   }
 };
 
+  const handleHomeClick = (e) => {
+    e.preventDefault();
+    setActiveLink("home");
+    setIsMenuOpen(false);
+    navigate('/');
+    window.scrollTo(0, 0);
+  };
+
   return (
     <>
       <Navbar>
@@ -234,21 +243,16 @@ const Header = ({ isMenuOpen, setIsMenuOpen }) => {
         </HamburgerIcon>
 
         <NavLinks isOpen={isMenuOpen}>
-        <StyledNavLink
-  as="a"
-  href="/"
-  className={activeLink === "home" ? "active" : ""}
-  onClick={(e) => {
-    e.preventDefault();
-    setActiveLink("home");
-    setIsMenuOpen(false);
-    window.history.pushState({}, "", "/"); // navigate without reload
-    window.scrollTo(0, 0);
-  }}
->
-  Home
-</StyledNavLink>
-
+          <li>
+            <StyledNavLink
+              as="a"
+              href="/"
+              className={activeLink === "home" ? "active" : ""}
+              onClick={handleHomeClick}
+            >
+              Home
+            </StyledNavLink>
+          </li>
           <li>
             <StyledNavLink 
               to="/about"
