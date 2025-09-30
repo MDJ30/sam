@@ -3,10 +3,97 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
 import { firestore } from "../config/firebase";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
-import { Helmet } from "react-helmet"; // Add this import
+import { Helmet } from "react-helmet";
+
+// Add loading animation keyframes
+const shimmer = keyframes`
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+`;
+
+const LoadingContainer = styled.div`
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 0 1.5rem;
+`;
+
+const SkeletonImage = styled.div`
+  width: 100%;
+  height: 400px;
+  background: #f0f0f0;
+  margin-bottom: 2rem;
+  animation: ${shimmer} 1.2s ease-in-out infinite;
+  background-image: linear-gradient(
+    90deg,
+    #f0f0f0 0px,
+    #f8f8f8 40px,
+    #f0f0f0 80px
+  );
+  background-size: 600px 100%;
+`;
+
+const SkeletonTitle = styled.div`
+  width: 80%;
+  height: 40px;
+  background: #f0f0f0;
+  margin-bottom: 1rem;
+  animation: ${shimmer} 1.2s ease-in-out infinite;
+  background-image: linear-gradient(
+    90deg,
+    #f0f0f0 0px,
+    #f8f8f8 40px,
+    #f0f0f0 80px
+  );
+  background-size: 600px 100%;
+`;
+
+const SkeletonMeta = styled.div`
+  width: 60%;
+  height: 20px;
+  background: #f0f0f0;
+  margin-bottom: 2rem;
+  animation: ${shimmer} 1.2s ease-in-out infinite;
+  background-image: linear-gradient(
+    90deg,
+    #f0f0f0 0px,
+    #f8f8f8 40px,
+    #f0f0f0 80px
+  );
+  background-size: 600px 100%;
+`;
+
+const SkeletonParagraph = styled.div`
+  width: 100%;
+  height: 100px;
+  background: #f0f0f0;
+  margin-bottom: 1rem;
+  animation: ${shimmer} 1.2s ease-in-out infinite;
+  background-image: linear-gradient(
+    90deg,
+    #f0f0f0 0px,
+    #f8f8f8 40px,
+    #f0f0f0 80px
+  );
+  background-size: 600px 100%;
+`;
+
+const fadeIn = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
 
 const ArticleWrapper = styled.div`
   max-width: 900px;
@@ -15,8 +102,8 @@ const ArticleWrapper = styled.div`
   font-family: "Georgia", serif;
   color: #222;
   line-height: 1.7;
+  animation: ${fadeIn} 0.5s ease-out;
 `;
-
 const Title = styled.h1`
   font-size: 2.5rem;
   font-weight: bold;
@@ -62,11 +149,24 @@ const ArticleContent = styled.div`
 const formatDate = (dateString) => {
   const date = new Date(dateString);
   return date.toLocaleDateString("en-US", {
-    month: "long",
+    month: "long", // This displays month as words (e.g., "September" instead of "09")
     day: "numeric",
     year: "numeric",
   });
 };
+
+function LoadingSkeleton() {
+  return (
+    <LoadingContainer>
+      <SkeletonImage />
+      <SkeletonTitle />
+      <SkeletonMeta />
+      <SkeletonParagraph />
+      <SkeletonParagraph />
+      <SkeletonParagraph />
+    </LoadingContainer>
+  );
+}
 
 function Article() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -94,41 +194,61 @@ function Article() {
   }, [id]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <>
+        <Header isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
+        <LoadingSkeleton />
+        <Footer />
+      </>
+    );
   }
 
   if (!articleData) {
-    return <div>Article not found</div>;
+    return (
+      <>
+        <Header isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
+        <ArticleWrapper>
+          <h2>Article not found</h2>
+        </ArticleWrapper>
+        <Footer />
+      </>
+    );
   }
 
   return (
     <>
       {articleData && (
         <Helmet>
-  <title>{articleData.title}</title>
-  <meta property="og:title" content={articleData.title} />
-  <meta
-    property="og:description"
-    content={articleData.content.slice(0, 200) + "..."}
-  />
-  <meta
-    property="og:image"
-    content={`https://ourladyofguadalupe.vercel.app/api/og?title=${encodeURIComponent(articleData.title)}&image=${encodeURIComponent(articleData.image)}`}
-  />
-  <meta property="og:url" content={`https://ourladyofguadalupe.vercel.app/article/${id}`} />
-  <meta property="og:type" content="article" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta
-    name="twitter:image"
-    content={`https://ourladyofguadalupe.vercel.app/api/og?title=${encodeURIComponent(articleData.title)}&image=${encodeURIComponent(articleData.image)}`}
-  />
-  <meta name="twitter:title" content={articleData.title} />
-  <meta
-    name="twitter:description"
-    content={articleData.content.slice(0, 200) + "..."}
-  />
-</Helmet>
-
+          <title>{articleData.title}</title>
+          <meta property="og:title" content={articleData.title} />
+          <meta
+            property="og:description"
+            content={articleData.content.slice(0, 200) + "..."}
+          />
+          <meta
+            property="og:image"
+            content={`https://ourladyofguadalupe.vercel.app/api/og?title=${encodeURIComponent(
+              articleData.title
+            )}&image=${encodeURIComponent(articleData.image)}`}
+          />
+          <meta
+            property="og:url"
+            content={`https://ourladyofguadalupe.vercel.app/article/${id}`}
+          />
+          <meta property="og:type" content="article" />
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta
+            name="twitter:image"
+            content={`https://ourladyofguadalupe.vercel.app/api/og?title=${encodeURIComponent(
+              articleData.title
+            )}&image=${encodeURIComponent(articleData.image)}`}
+          />
+          <meta name="twitter:title" content={articleData.title} />
+          <meta
+            name="twitter:description"
+            content={articleData.content.slice(0, 200) + "..."}
+          />
+        </Helmet>
       )}
       <Header isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
       <ArticleWrapper>

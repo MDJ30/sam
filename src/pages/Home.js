@@ -6,7 +6,7 @@ import {
   HeraldLogo
 } from "../styles/Home";
 import Footer from "../components/Footer";
-import styled from "styled-components";
+import styled, { keyframes } from "styled-components";
 import { ref, onValue } from 'firebase/database';
 import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
 import { db, firestore } from '../config/firebase';
@@ -195,8 +195,65 @@ const formatDate = (dateString) => {
   });
 };
 
+// Add after existing imports
+const shimmer = keyframes`
+  0% {
+    background-position: -468px 0;
+  }
+  100% {
+    background-position: 468px 0;
+  }
+`;
+
+const SkeletonCard = styled.div`
+  background: #f0f0f0;
+  border-radius: 8px;
+  overflow: hidden;
+  height: 280px;
+  animation: ${shimmer} 1.2s ease-in-out infinite;
+  background-image: linear-gradient(
+    90deg,
+    #f0f0f0 0px,
+    #f8f8f8 40px,
+    #f0f0f0 80px
+  );
+  background-size: 600px 100%;
+`;
+
+const SkeletonHeadline = styled.div`
+  height: 100px;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #f0f0f0;
+  border-radius: 4px;
+  animation: ${shimmer} 1.2s ease-in-out infinite;
+  background-image: linear-gradient(
+    90deg,
+    #f0f0f0 0px,
+    #f8f8f8 40px,
+    #f0f0f0 80px
+  );
+  background-size: 600px 100%;
+`;
+
+const SkeletonImage = styled.div`
+  width: 100%;
+  height: 400px;
+  background: #f0f0f0;
+  border-radius: 8px;
+  animation: ${shimmer} 1.2s ease-in-out infinite;
+  background-image: linear-gradient(
+    90deg,
+    #f0f0f0 0px,
+    #f8f8f8 40px,
+    #f0f0f0 80px
+  );
+  background-size: 600px 100%;
+`;
 
 function Home() {
+  // Add loading state
+  const [isLoading, setIsLoading] = useState(true);
   const [heroHeight, setHeroHeight] = useState(400);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -264,6 +321,7 @@ function Home() {
   }, [headlineData.length]);
 
   useEffect(() => {
+    setIsLoading(true);
     // Fetch headlines from Firestore
     const headlinesRef = collection(firestore, 'headlines');
     const unsubscribeHeadlines = onSnapshot(
@@ -281,9 +339,11 @@ function Home() {
           });
         });
         setHeadlineData(headlines);
+        setIsLoading(false);
       },
       (error) => {
         console.error("Error fetching headlines:", error);
+        setIsLoading(false);
       }
     );
 
@@ -336,6 +396,25 @@ function Home() {
     }
   };
 
+  // Add skeleton loading component
+  const LoadingSkeleton = () => (
+    <>
+      <HeadlinesSection>
+        <div>
+          {[1, 2, 3].map((n) => (
+            <SkeletonHeadline key={n} />
+          ))}
+        </div>
+        <SkeletonImage />
+      </HeadlinesSection>
+      <LocalNewsGrid>
+        {[1, 2, 3, 4].map((n) => (
+          <SkeletonCard key={n} />
+        ))}
+      </LocalNewsGrid>
+    </>
+  );
+
   return (
     <>
       <Header isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
@@ -348,61 +427,95 @@ function Home() {
         <div>
           <Section>
             <SectionTitle>HEADLINES</SectionTitle>
-            <HeadlinesSection>
-              <Headlines>
-                {headlineData.map((headline, index) => (
-                  <HeadlineCard 
-                    key={headline.id || index}
-                    className={activeIndex === index ? 'active' : ''}
-                    onClick={() => {
-                      setActiveIndex(index);
-                      handleArticleClick(headline);
-                    }}
-                    style={{ cursor: headline.articleId ? 'pointer' : 'default' }}
-                  >
-                    <span>{formatDate(headline.date)}</span>
-                    <h3>{headline.title}</h3>
-                  </HeadlineCard>
-                ))}
-              </Headlines>
-              <CarouselContainer>
-                {headlineData.map((headline, index) => (
-                  <CarouselImage
-                    key={headline.id || index}
-                    src={headline.image}
-                    alt={headline.title}
-                    active={activeIndex === index}
-                    onClick={() => handleArticleClick(headline)}
-                    style={{ cursor: headline.articleId ? 'pointer' : 'default' }}
-                  />
-                ))}
-              </CarouselContainer>
-            </HeadlinesSection>
+            {isLoading ? (
+              <LoadingSkeleton />
+            ) : (
+              <>
+                <HeadlinesSection>
+                  <Headlines>
+                    {headlineData.length === 0 ? (
+                      // Show skeletons if no headline data
+                      Array.from({ length: 3 }).map((_, index) => (
+                        <SkeletonHeadline key={index} />
+                      ))
+                    ) : (
+                      headlineData.map((headline, index) => (
+                        <HeadlineCard 
+                          key={headline.id || index}
+                          className={activeIndex === index ? 'active' : ''}
+                          onClick={() => {
+                            setActiveIndex(index);
+                            handleArticleClick(headline);
+                          }}
+                          style={{ cursor: headline.articleId ? 'pointer' : 'default' }}
+                        >
+                          <span>{formatDate(headline.date)}</span>
+                          <h3>{headline.title}</h3>
+                        </HeadlineCard>
+                      ))
+                    )}
+                  </Headlines>
+                  <CarouselContainer>
+                    {headlineData.length === 0 ? (
+                      // Show skeleton image if no headline data
+                      <SkeletonImage />
+                    ) : (
+                      headlineData.map((headline, index) => (
+                        <CarouselImage
+                          key={headline.id || index}
+                          src={headline.image}
+                          alt={headline.title}
+                          active={activeIndex === index}
+                          onClick={() => handleArticleClick(headline)}
+                          style={{ cursor: headline.articleId ? 'pointer' : 'default' }}
+                        />
+                      ))
+                    )}
+                  </CarouselContainer>
+                </HeadlinesSection>
+              </>
+            )}
           </Section>
 
           <Section>
             <SectionTitle>NEWS</SectionTitle>
-            <LocalNewsGrid>
-              {localNewsData.map((article, index) => (
-                <NewsCard 
-                  key={article.id}
-                  onClick={() => handleArticleClick(article)}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <img src={article.image} alt={article.title}/>
-                  <div className="info">
-                    <span>{formatDate(article.date)}</span>
-                    <h3>{article.title}</h3>
-                  </div>
-                </NewsCard>
-              ))}
-            </LocalNewsGrid>
+            {isLoading ? (
+              <LocalNewsGrid>
+                {[1, 2, 3, 4].map((n) => (
+                  <SkeletonCard key={n} />
+                ))}
+              </LocalNewsGrid>
+            ) : (
+              <LocalNewsGrid>
+                {localNewsData.length === 0 ? (
+                  // Show skeletons if no local news data
+                  Array.from({ length: 4 }).map((_, index) => (
+                    <SkeletonCard key={index} />
+                  ))
+                ) : (
+                  localNewsData.map((article, index) => (
+                    <NewsCard 
+                      key={article.id}
+                      onClick={() => handleArticleClick(article)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <img src={article.image} alt={article.title}/>
+                      <div className="info">
+                        <span>{formatDate(article.date)}</span>
+                        <h3>{article.title}</h3>
+                      </div>
+                    </NewsCard>
+                  ))
+                )}
+              </LocalNewsGrid>
+            )}
           </Section>
         </div>
       </ContentWrapper>
       <Footer/>
     </>
   );
-}
+};
+
 
 export default Home;
