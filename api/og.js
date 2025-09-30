@@ -1,11 +1,10 @@
-// /api/og.js
 import { ImageResponse } from "@vercel/og";
 
 export const config = {
-  runtime: "edge", // important for speed
+  runtime: "edge",  // required
 };
 
-export default async function handler(req) {
+export default function handler(req) {
   const { searchParams } = new URL(req.url);
   const title = searchParams.get("title") || "Untitled Article";
   const image = searchParams.get("image");
@@ -47,4 +46,3 @@ export default async function handler(req) {
     }
   );
 }
-s
