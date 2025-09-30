@@ -22,6 +22,11 @@ const LoadingContainer = styled.div`
   max-width: 900px;
   margin: 2rem auto;
   padding: 0 1.5rem;
+
+  @media (max-width: 768px) {
+    margin: 1rem auto;
+    padding: 0 1rem;
+  }
 `;
 
 const SkeletonImage = styled.div`
@@ -37,6 +42,11 @@ const SkeletonImage = styled.div`
     #f0f0f0 80px
   );
   background-size: 600px 100%;
+
+  @media (max-width: 768px) {
+    height: 250px;
+    margin-bottom: 1.5rem;
+  }
 `;
 
 const SkeletonTitle = styled.div`
@@ -103,12 +113,22 @@ const ArticleWrapper = styled.div`
   color: #222;
   line-height: 1.7;
   animation: ${fadeIn} 0.5s ease-out;
+
+  @media (max-width: 768px) {
+    margin: 1rem auto;
+    padding: 0 1rem;
+  }
 `;
 const Title = styled.h1`
   font-size: 2.5rem;
   font-weight: bold;
   margin-bottom: 0.75rem;
   color: #111;
+
+  @media (max-width: 768px) {
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+  }
 `;
 
 const Meta = styled.div`
@@ -120,11 +140,23 @@ const Meta = styled.div`
     font-weight: 500;
     color: #444;
   }
+
+  @media (max-width: 768px) {
+    font-size: 0.85rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+  }
 `;
 
 const Paragraph = styled.p`
   margin-bottom: 1.5rem;
   font-size: 1.05rem;
+
+  @media (max-width: 768px) {
+    font-size: 1rem;
+    margin-bottom: 1.2rem;
+    line-height: 1.6;
+  }
 `;
 
 const ImageContainer = styled.div`
@@ -132,18 +164,31 @@ const ImageContainer = styled.div`
   max-height: 500px;
   overflow: hidden;
   margin-bottom: 2rem;
+
+  @media (max-width: 768px) {
+    max-height: 300px;
+    margin-bottom: 1.5rem;
+  }
 `;
 
 const ArticleImage = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
+
+  @media (max-width: 768px) {
+    height: auto;
+  }
 `;
 
 const ArticleContent = styled.div`
   max-width: 900px;
   margin: 0 auto;
   padding: 0 1.5rem;
+
+  @media (max-width: 768px) {
+    padding: 0 1rem;
+  }
 `;
 
 const formatDate = (dateString) => {
