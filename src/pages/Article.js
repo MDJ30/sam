@@ -105,27 +105,30 @@ function Article() {
     <>
       {articleData && (
         <Helmet>
-          <title>{articleData.title}</title>
-          <meta property="og:title" content={articleData.title} />
-          <meta
-            property="og:description"
-            content={
-              articleData.content.slice(0, 200) + "..."
-            }
-          />
-          <meta property="og:image" content={articleData.image} />
-          <meta property="og:url" content={window.location.href} />
-          <meta property="og:type" content="article" />
-          <meta name="twitter:card" content="summary_large_image" />
-          <meta name="twitter:image" content={articleData.image} />
-          <meta name="twitter:title" content={articleData.title} />
-          <meta
-            name="twitter:description"
-            content={
-              articleData.content.slice(0, 200) + "..."
-            }
-          />
-        </Helmet>
+  <title>{articleData.title}</title>
+  <meta property="og:title" content={articleData.title} />
+  <meta
+    property="og:description"
+    content={articleData.content.slice(0, 200) + "..."}
+  />
+  <meta
+    property="og:image"
+    content={`https://ourladyofguadalupe.vercel.app/api/og?title=${encodeURIComponent(articleData.title)}&image=${encodeURIComponent(articleData.image)}`}
+  />
+  <meta property="og:url" content={`https://ourladyofguadalupe.vercel.app/article/${id}`} />
+  <meta property="og:type" content="article" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta
+    name="twitter:image"
+    content={`https://ourladyofguadalupe.vercel.app/api/og?title=${encodeURIComponent(articleData.title)}&image=${encodeURIComponent(articleData.image)}`}
+  />
+  <meta name="twitter:title" content={articleData.title} />
+  <meta
+    name="twitter:description"
+    content={articleData.content.slice(0, 200) + "..."}
+  />
+</Helmet>
+
       )}
       <Header isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
       <ArticleWrapper>

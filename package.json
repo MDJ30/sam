@@ -8,6 +8,7 @@
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
+    "@vercel/og": "^0.8.5",
     "firebase": "^12.3.0",
     "formik": "^2.4.6",
     "react": "^19.1.1",
