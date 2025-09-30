@@ -13,8 +13,7 @@ import {
 
 const StyledNavLink = styled(NavLink)`
   text-decoration: none;
-  color: ${({ $isActive, $isContactActive }) => 
-    $isContactActive ? '#333' : ($isActive ? '#c0392b' : '#333')};
+  color: ${({ $isActive }) => $isActive ? '#c0392b' : '#333'};
   font-weight: 500;
   transition: color 0.3s ease;
 
@@ -23,7 +22,7 @@ const StyledNavLink = styled(NavLink)`
   }
 
   &.active {
-    color: ${({ $isContactActive }) => ($isContactActive ? '#333' : '#c0392b')};
+    color: #c0392b;
     position: relative;
 
     &::after {
@@ -34,7 +33,6 @@ const StyledNavLink = styled(NavLink)`
       width: 100%;
       height: 2px;
       background: #c0392b;
-      opacity: ${({ $isContactActive }) => ($isContactActive ? '0' : '1')};
     }
   }
 `;
@@ -209,25 +207,13 @@ const Header = ({ isMenuOpen, setIsMenuOpen }) => {
   // Reset active link when route changes
  useEffect(() => {
   const handleScroll = () => {
-    const footer = document.querySelector("footer");
-    if (!footer) return;
-
-    const rect = footer.getBoundingClientRect();
-    const isFooterVisible = rect.top < window.innerHeight && rect.bottom >= 0;
     const isHomePage = location.pathname === "/";
     const isNewsPage = location.pathname === "/news";
 
-    if (isHomePage || isNewsPage) {
-      if (isFooterVisible) {
-        setActiveLink("contact");
-      } else {
-        // Set active link based on current page and state
-        if (isNewsPage && location.state?.fromOtherPage) {
-          setActiveLink("news");
-        } else {
-          setActiveLink(isHomePage ? "home" : "news");
-        }
-      }
+    if (isHomePage) {
+      setActiveLink("home");
+    } else if (isNewsPage) {
+      setActiveLink("news");
     } else {
       const path = location.pathname.substring(1);
       setActiveLink(path || "home");
@@ -304,21 +290,6 @@ const Header = ({ isMenuOpen, setIsMenuOpen }) => {
     }
   };
 
-  const scrollToFooter = (e) => {
-  e.preventDefault();
-  const footer = document.querySelector("footer");
-  if (footer) {
-    if (location.pathname === "/" || location.pathname === "/news") {
-      setActiveLink("contact");
-      footer.scrollIntoView({ behavior: "smooth" });
-    } else {
-      // If not on home or news page, navigate home first then scroll to contact
-      navigate('/', { state: { scrollToContact: true } });
-    }
-    setIsMenuOpen(false);
-  }
-};
-
   const handleHomeClick = (e) => {
     e.preventDefault();
     setActiveLink("home");
@@ -373,7 +344,6 @@ const handleNewsClick = (e) => {
     className={activeLink === "news" ? "active" : ""}
     onClick={handleNewsClick}
     $isActive={activeLink === "news"}
-    $isContactActive={activeLink === "contact"}
   >
     News
   </StyledNavLink>
@@ -387,16 +357,6 @@ const handleNewsClick = (e) => {
             </StyledNavLink>
           </li>
           
-        <li>
-  <StyledNavLink
-    as="a"
-    href="#contact"
-    className={activeLink === "contact" ? "active" : ""}
-    onClick={scrollToFooter}
-  >
-    Contact Us
-  </StyledNavLink>
-</li>
           <li>
             <SearchContainer>
               <SearchBar
