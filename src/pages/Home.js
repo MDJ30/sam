@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import Header from "../components/Header";
+import { Header, HeaderSpacer } from '../components/Header';
 import {
   Hero,
   QuoteSection,
@@ -418,6 +418,8 @@ function Home() {
   return (
     <>
       <Header isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
+      <HeaderSpacer shrink={window.scrollY > 100} />
+
       <Hero height={heroHeight}>
       </Hero>
       <QuoteSection>

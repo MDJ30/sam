@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { doc, getDoc, collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 import { firestore } from "../config/firebase";
 import styled, { keyframes } from "styled-components";
-import Header from "../components/Header";
+import { Header, HeaderSpacer } from '../components/Header';
 import Footer from "../components/Footer";
 import { Helmet } from "react-helmet";
 
@@ -278,6 +278,7 @@ function Article() {
     return (
       <>
         <Header isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
+        <HeaderSpacer shrink={window.scrollY > 100} />
         <ArticleWrapper><h2>Article not found</h2></ArticleWrapper>
         <Footer />
       </>

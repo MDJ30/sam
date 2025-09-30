@@ -6,8 +6,6 @@ import { firestore } from '../config/firebase';
 import logo from "../2.png";
 import styled from 'styled-components';
 import {
-  Navbar,
-  Logo,
   HamburgerIcon,
 } from "../styles/Home";
 
@@ -107,6 +105,13 @@ const SearchContainer = styled.div`
     justify-content: center;
   }
 `;
+const HeaderSpacer = styled.div`
+  height: ${({ shrink }) => (shrink ? '60px' : '80px')};
+  
+  @media (max-width: 768px) {
+    height: ${({ shrink }) => (shrink ? '50px' : '70px')};
+  }
+`;
 
 const SearchBar = styled.input`
   position: absolute;
@@ -181,12 +186,51 @@ const SearchResultItem = styled.div`
   }
 `;
 
+const HeaderContainer = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  transition: transform 0.3s ease;
+  transform: translateY(${({ hide }) => (hide ? '-100%' : '0')});
+  background: white;
+`;
+
+const Navbar = styled.nav`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: ${({ shrink }) => (shrink ? '0.5rem 2rem' : '1rem 2rem')};
+  background: white;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+
+  @media (max-width: 768px) {
+    padding: ${({ shrink }) => (shrink ? '0.5rem 1rem' : '1rem')};
+  }
+`;
+
+const Logo = styled.img`
+  height: ${({ shrink }) => (shrink ? '40px' : '50px')};
+  transition: all 0.3s ease;
+
+  @media (max-width: 768px) {
+    height: ${({ shrink }) => (shrink ? '30px' : '40px')};
+  }
+`;
+
+const SCROLL_THRESHOLD = 100;
+
 const Header = ({ isMenuOpen, setIsMenuOpen }) => {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeLink, setActiveLink] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [articles, setArticles] = useState([]);
+  const [shrink, setShrink] = useState(false);
+  const [hideHeader, setHideHeader] = useState(false);
+  const [lastScrollY, setLastScrollY] = useState(0);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -306,10 +350,36 @@ const handleNewsClick = (e) => {
   // Don't set active link here as it will be handled by useEffect
 };
 
+  // Add this new useEffect for scroll handling
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      // Determine if header should shrink
+      if (currentScrollY > SCROLL_THRESHOLD) {
+        setShrink(true);
+      } else {
+        setShrink(false);
+      }
+
+      // Determine if header should hide
+      if (currentScrollY > lastScrollY && currentScrollY > 200) {
+        setHideHeader(true);
+      } else {
+        setHideHeader(false);
+      }
+
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
+
   return (
-    <>
-      <Navbar>
-        <Logo src={logo} alt="Spirit FM Logo" />
+    <HeaderContainer hide={hideHeader}>
+      <Navbar shrink={shrink}>
+        <Logo src={logo} alt="Spirit FM Logo" shrink={shrink} />
         <HamburgerIcon
           className={isMenuOpen ? 'open' : ''}
           onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -383,8 +453,7 @@ const handleNewsClick = (e) => {
         </NavLinks>
       </Navbar>
       <MobileMenuOverlay isOpen={isMenuOpen} onClick={() => setIsMenuOpen(false)} />
-    </>
+    </HeaderContainer>
   );
 };
-
-export default Header;
+export { Header, HeaderSpacer };

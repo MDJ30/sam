@@ -3,7 +3,7 @@ import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import { firestore } from "../config/firebase";
 import { Link } from "react-router-dom";
 import styled from "styled-components";
-import Header from "../components/Header";
+import { Header, HeaderSpacer } from '../components/Header';
 import Footer from "../components/Footer";
 
 const NewsWrapper = styled.div`
@@ -134,6 +134,7 @@ function News() {
   return (
     <>
     <Header isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
+    <HeaderSpacer shrink={window.scrollY > 100} />
     <NewsWrapper>
       <h1>Latest News</h1>
 
