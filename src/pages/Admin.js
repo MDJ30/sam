@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ref, push, set, remove, onValue } from 'firebase/database'; // Added onValue here
+import { ref, push, set, onValue } from 'firebase/database'; // Added onValue here
 import { collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db, firestore } from '../config/firebase';
 import styled from 'styled-components';
@@ -262,41 +262,6 @@ function Admin() {
     }
   };
 
-  const handleLocalNewsSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(prev => ({ ...prev, localNews: true }));
-    try {
-      if (editMode.localNews) {
-        await updateDoc(doc(firestore, 'localNews', editMode.localNews), {
-          title: localNews.title,
-          date: localNews.date,
-          image: localNews.image,
-          timestamp: new Date()
-        });
-        setMessage({ text: 'Local news updated successfully!', type: 'success' });
-        setEditMode({ ...editMode, localNews: null });
-      } else {
-        const newsRef = ref(db, 'localNews');
-        await push(newsRef, {
-          title: localNews.title,
-          date: localNews.date,
-          image: localNews.image,
-          timestamp: Date.now()
-        });
-        
-        setMessage({
-          text: 'Local news added successfully!',
-          type: 'success'
-        });
-      }
-      setLocalNews({ title: '', date: '', image: null, imagePreview: null });
-    } catch (error) {
-      console.error('Error with local news:', error);
-      setMessage({ text: 'Operation failed. Please try again.', type: 'error' });
-    } finally {
-      setIsLoading(prev => ({ ...prev, localNews: false }));
-    }
-  };
 
   const handleQuoteSubmit = async (e) => {
     e.preventDefault();

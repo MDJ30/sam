@@ -125,12 +125,7 @@ const ModalTitle = styled.h3`
   margin-bottom: 20px;
 `;
 
-const ModalDescription = styled.p`
-  font-size: 1.1rem;
-  color: #666;
-  line-height: 1.6;
-  text-align: center;
-`;
+
 
 const Card = styled.div`
   background: #fff;

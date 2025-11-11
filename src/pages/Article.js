@@ -12,11 +12,11 @@ import {
   serverTimestamp,
   onSnapshot,
   setDoc,
-  where,
+  
 } from "firebase/firestore";
 import { firestore } from "../config/firebase";
 import styled, { keyframes } from "styled-components";
-import { Header, HeaderSpacer } from "../components/Header";
+import { Header } from "../components/Header";
 import Footer from "../components/Footer";
 
 // ✨ Animation for shimmer
