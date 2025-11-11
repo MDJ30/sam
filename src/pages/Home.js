@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Header, HeaderSpacer } from '../components/Header';
 import {
   Hero,
-  QuoteSection,
-  HeraldLogo
+  QuoteSection
 } from "../styles/Home";
 import Footer from "../components/Footer";
 import styled, { keyframes } from "styled-components";

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { collection, query, orderBy, onSnapshot, doc, updateDoc, increment } from "firebase/firestore";
 import { firestore } from "../config/firebase";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom"; // removed unused Link import
 import styled from "styled-components";
-import { Header, HeaderSpacer } from '../components/Header';
+import { Header, HeaderSpacer } from "../components/Header";
 import Footer from "../components/Footer";
 
 const NewsWrapper = styled.div`
@@ -23,10 +23,16 @@ const ArticleCard = styled.div`
     color: #222;
   }
 
-  h2 a {
-    text-decoration: none;
+  button.article-link {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-size: 1.8rem;
     color: #000;
+    text-align: left;
     cursor: pointer;
+    text-decoration: none;
 
     &:hover {
       color: #007bff;
@@ -70,7 +76,6 @@ const Button = styled.button`
   background: #000;
   color: white;
   border-radius: 4px;
-  text-decoration: none;
   font-size: 0.9rem;
   border: none;
   cursor: pointer;
@@ -138,28 +143,22 @@ function News() {
     });
   };
 
-  // 🔹 Handle article click with view count
   const handleArticleClick = async (articleId) => {
     if (!articleId) return;
 
     try {
-      // Increment the view count
       const articleRef = doc(firestore, "articles", articleId);
       await updateDoc(articleRef, {
         views: increment(1),
         lastViewed: new Date(),
       });
-
-      // Navigate to article
-      navigate(`/article/${articleId}`);
     } catch (error) {
       console.error("Error updating view count:", error);
-      // Still navigate even if there's an error
-      navigate(`/article/${articleId}`);
     }
+
+    navigate(`/article/${articleId}`);
   };
 
-  // Pagination logic
   const indexOfLast = currentPage * articlesPerPage;
   const indexOfFirst = indexOfLast - articlesPerPage;
   const currentArticles = articles.slice(indexOfFirst, indexOfLast);
@@ -185,13 +184,15 @@ function News() {
                 />
               )}
               <h2>
-                <a onClick={() => handleArticleClick(article.id)}>
+                <button
+                  className="article-link"
+                  onClick={() => handleArticleClick(article.id)}
+                >
                   {article.title}
-                </a>
+                </button>
               </h2>
               <div className="meta">
-                Posted on{" "}
-                <span>{formatDate(article.date)}</span> in{" "}
+                Posted on <span>{formatDate(article.date)}</span> in{" "}
                 <span>{article.category}</span> by{" "}
                 <span>{article.author}</span>
               </div>
