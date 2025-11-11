@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   doc,
@@ -230,6 +230,40 @@ function Article() {
   const { id } = useParams();
   const navigate = useNavigate();
 
+  // added: centralized recommended fetch function (memoized to satisfy hook lint)
+  const getRecommendedArticles = useCallback(async (currentArticle) => {
+    try {
+      const articlesRef = collection(firestore, "articles");
+
+      // First try: same category (most recent)
+      const categoryQuery = query(articlesRef, orderBy("timestamp", "desc"), limit(6));
+      const categorySnapshot = await getDocs(categoryQuery);
+      let recommendations = [];
+      categorySnapshot.forEach((docSnap) => {
+        const data = { id: docSnap.id, ...docSnap.data() };
+        if (docSnap.id !== id && data.category === currentArticle.category) {
+          recommendations.push(data);
+        }
+      });
+
+      // If fewer than 3, add recent articles regardless of category
+      if (recommendations.length < 3) {
+        const recentQuery = query(articlesRef, orderBy("timestamp", "desc"), limit(6));
+        const recentSnapshot = await getDocs(recentQuery);
+        recentSnapshot.forEach((docSnap) => {
+          const data = { id: docSnap.id, ...docSnap.data() };
+          if (docSnap.id !== id && !recommendations.find((r) => r.id === docSnap.id)) {
+            recommendations.push(data);
+          }
+        });
+      }
+
+      setRecommendedArticles(recommendations.slice(0, 3));
+    } catch (error) {
+      console.error("Error fetching recommendations:", error);
+    }
+  }, [id]);
+
   // Fetch article
   useEffect(() => {
     const fetchArticle = async () => {
@@ -249,7 +283,7 @@ function Article() {
       }
     };
     if (id) fetchArticle();
-  }, [id]);
+  }, [id, getRecommendedArticles]);
 
   useEffect(() => {
     if (articleData && articleData.title) {
@@ -284,40 +318,6 @@ function Article() {
       unsubscribeComments();
     };
   }, [id]);
-
-  // added: centralized recommended fetch function
-  const getRecommendedArticles = async (currentArticle) => {
-    try {
-      const articlesRef = collection(firestore, "articles");
-
-      // First try: same category (most recent)
-      const categoryQuery = query(articlesRef, orderBy("timestamp", "desc"), limit(6));
-      const categorySnapshot = await getDocs(categoryQuery);
-      let recommendations = [];
-      categorySnapshot.forEach((docSnap) => {
-        const data = { id: docSnap.id, ...docSnap.data() };
-        if (docSnap.id !== id && data.category === currentArticle.category) {
-          recommendations.push(data);
-        }
-      });
-
-      // If fewer than 3, add recent articles regardless of category
-      if (recommendations.length < 3) {
-        const recentQuery = query(articlesRef, orderBy("timestamp", "desc"), limit(6));
-        const recentSnapshot = await getDocs(recentQuery);
-        recentSnapshot.forEach((docSnap) => {
-          const data = { id: docSnap.id, ...docSnap.data() };
-          if (docSnap.id !== id && !recommendations.find((r) => r.id === docSnap.id)) {
-            recommendations.push(data);
-          }
-        });
-      }
-
-      setRecommendedArticles(recommendations.slice(0, 3));
-    } catch (error) {
-      console.error("Error fetching recommendations:", error);
-    }
-  };
 
   const handleReaction = async (type) => {
     try {

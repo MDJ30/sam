@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ref, push, set, onValue } from 'firebase/database'; // Added onValue here
+import { ref, set, onValue } from 'firebase/database'; // Added onValue here
 import { collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot, query, orderBy } from 'firebase/firestore';
 import { db, firestore } from '../config/firebase';
 import styled from 'styled-components';
@@ -84,12 +84,6 @@ const ImagePreview = styled.img`
 function Admin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [headline, setHeadline] = useState({ 
-    title: '', 
-    date: '', 
-    image: null,
-    imagePreview: null
-  });
-  const [localNews, setLocalNews] = useState({ 
     title: '', 
     date: '', 
     image: null,
@@ -203,13 +197,7 @@ function Admin() {
             image: base64Image,
             imagePreview: URL.createObjectURL(file)
           }));
-        } else if (type === 'localNews') {
-          setLocalNews(prev => ({
-            ...prev,
-            image: base64Image,
-            imagePreview: URL.createObjectURL(file)
-          }));
-        } else {
+        } else if (type === 'article') {
           setArticle(prev => ({
             ...prev,
             image: base64Image,
