@@ -17,7 +17,7 @@ import { firestore } from "../config/firebase";
 import styled, { keyframes } from "styled-components";
 import { Header, HeaderSpacer } from "../components/Header";
 import Footer from "../components/Footer";
-import { Helmet } from "react-helmet";
+import { Helmet } from 'react-helmet-async';
 
 // ✨ Animation for shimmer
 const shimmer = keyframes`
