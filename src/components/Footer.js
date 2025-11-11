@@ -1,7 +1,7 @@
 // Footer.js
 import React from "react";
 import styled from "styled-components";
-import { FaSearch } from "react-icons/fa";
+import logo from "../2.png";
 
 const FooterWrapper = styled.footer`
   background: #2f2f2f;
@@ -12,11 +12,16 @@ const FooterWrapper = styled.footer`
 
 const FooterContent = styled.div`
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  justify-content: space-around;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 30px;
+  gap: 40px;
   margin-bottom: 30px;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 30px;
+  }
 `;
 
 const FooterColumn = styled.div`
@@ -41,29 +46,40 @@ const FooterColumn = styled.div`
   }
 `;
 
-const SearchBox = styled.div`
+const LogoContainer = styled.div`
   display: flex;
+  flex-direction: column;
   align-items: center;
-  margin-top: 10px;
+  justify-content: center;
+  flex: 1;
 
-  input {
-    padding: 8px 12px;
-    border: none;
-    outline: none;
-    width: 220px;
-    border-radius: 2px 0 0 2px;
-  }
-
-  button {
-    background: #000;
-    border: none;
-    padding: 9px 12px;
-    cursor: pointer;
-    color: #fff;
-    border-radius: 0 2px 2px 0;
+  img {
+    height: 120px;
+    margin-bottom: 15px;
+    transition: transform 0.3s ease;
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
 
     &:hover {
-      background: #444;
+      transform: scale(1.1);
+    }
+  }
+
+  p {
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+    letter-spacing: 0.5px;
+  }
+
+  @media (max-width: 768px) {
+    img {
+      height: 100px;
+    }
+
+    p {
+      font-size: 14px;
     }
   }
 `;
@@ -76,58 +92,29 @@ const FooterBottom = styled.div`
   color: #aaa;
 `;
 
-// Responsive styling
-const ResponsiveWrapper = styled.div`
-  @media (max-width: 768px) {
-    ${FooterContent} {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    ${SearchBox} input {
-      width: 100%;
-    }
-  }
-`;
-
 const Footer = () => {
   return (
     <FooterWrapper>
-      <ResponsiveWrapper>
-        <FooterContent>
-          <FooterColumn>
-            <h4>About Us</h4>
-            <p>
-              DXGN 89.9 Spirit FM is the official Catholic radio station owned
-              and operated by the Archdiocese of Davao.
-            </p>
-          </FooterColumn>
+      <FooterContent>
+        <LogoContainer>
+          <img src={logo} alt="Spirit FM Logo" />
+          <p>OUR LADY OF GUADALUPE PARISH</p>
+        </LogoContainer>
 
-          <FooterColumn>
-            <h4>Visit Us</h4>
-            <p>
-              <strong>Address</strong> <br />
-              PHASE 6, DECA HOMES, TUGBOK DISTRICT, DAVAO CITY
-            </p>
-            <p>
-              <strong>Contact #</strong>09055162157<br />
-              <strong>Tel #</strong>287-7843<br />
-              <strong>Priest's Hours:</strong> WEDNESDAY-THURSDAY: 9:00AM-11:30AM<br />
-              <strong>Office Hours:</strong> TUESDAY-SUNDAY: 9:00AM-4:00PM
-            </p>
-          </FooterColumn>
-
-          <FooterColumn>
-            <h4>Search</h4>
-            <SearchBox>
-              <input type="text" placeholder="Search..." />
-              <button>
-                <FaSearch />
-              </button>
-            </SearchBox>
-          </FooterColumn>
-        </FooterContent>
-      </ResponsiveWrapper>
+        <FooterColumn>
+          <h4>Visit Us</h4>
+          <p>
+            <strong>Address</strong> <br />
+            PHASE 6, DECA HOMES, TUGBOK DISTRICT, DAVAO CITY
+          </p>
+          <p>
+            <strong>Contact #</strong> 09055162157<br />
+            <strong>Tel #</strong> 287-7843<br />
+            <strong>Priest's Hours:</strong> WEDNESDAY-THURSDAY: 9:00AM-11:30AM<br />
+            <strong>Office Hours:</strong> TUESDAY-SUNDAY: 9:00AM-4:00PM
+          </p>
+        </FooterColumn>
+      </FooterContent>
 
       <FooterBottom>
         Copyright © 2025 OUR LADY OF GUADALUPE PARISH. All rights reserved.

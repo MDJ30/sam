@@ -5,6 +5,7 @@ import Admin from "./pages/Admin";
 import Article from "./pages/Article";
 import News from "./pages/News";
 import Team from "./pages/Team";
+import Stats from "./pages/Stats";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/article/:id" element={<Article />} />
         <Route path="/news" element={<News />} />
         <Route path="/team" element={<Team/>}/>
+        <Route path="/stats" element={<Stats/>}/>
 
         {/* Add more routes here as needed */}
       </Routes>

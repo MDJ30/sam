@@ -8,7 +8,7 @@ import {
 import Footer from "../components/Footer";
 import styled, { keyframes } from "styled-components";
 import { ref, onValue } from 'firebase/database';
-import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit,doc, updateDoc, increment } from 'firebase/firestore';
 import { db, firestore } from '../config/firebase';
 import { useNavigate } from 'react-router-dom';
 
@@ -389,12 +389,18 @@ function Home() {
       unsubscribeQuote();
     };
   }, []);
+const handleArticleClick = async (article) => {
+  if (!article.articleId) return;
 
-  const handleArticleClick = (article) => {
-    if (article.articleId) {
-      navigate(`/article/${article.articleId}`);
-    }
-  };
+  // Increment the view count
+  const articleRef = doc(firestore, "articles", article.articleId);
+  await updateDoc(articleRef, {
+    views: increment(1),
+    lastViewed: new Date()
+  });
+
+  navigate(`/article/${article.articleId}`);
+};
 
   // Add skeleton loading component
   const LoadingSkeleton = () => (

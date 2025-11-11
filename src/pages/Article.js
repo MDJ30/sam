@@ -1,14 +1,25 @@
-// Article.js
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { doc, getDoc, collection, query, orderBy, limit, getDocs } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  collection,
+  query,
+  orderBy,
+  limit,
+  getDocs,
+  addDoc,
+  serverTimestamp,
+  onSnapshot,
+  setDoc,
+} from "firebase/firestore";
 import { firestore } from "../config/firebase";
 import styled, { keyframes } from "styled-components";
-import { Header, HeaderSpacer } from '../components/Header';
+import { Header, HeaderSpacer } from "../components/Header";
 import Footer from "../components/Footer";
 import { Helmet } from "react-helmet";
 
-// Shimmer animation for loading
+// ✨ Animation for shimmer
 const shimmer = keyframes`
   0% { background-position: -468px 0; }
   100% { background-position: 468px 0; }
@@ -18,12 +29,7 @@ const LoadingContainer = styled.div`
   max-width: 900px;
   margin: 2rem auto;
   padding: 0 1.5rem;
-  @media (max-width: 768px) {
-    margin: 1rem auto;
-    padding: 0 1rem;
-  }
 `;
-
 const SkeletonBlock = styled.div`
   width: ${(props) => props.width || "100%"};
   height: ${(props) => props.height || "20px"};
@@ -33,7 +39,6 @@ const SkeletonBlock = styled.div`
   background-image: linear-gradient(90deg, #f0f0f0 0px, #f8f8f8 40px, #f0f0f0 80px);
   background-size: 600px 100%;
 `;
-
 function LoadingSkeleton() {
   return (
     <LoadingContainer>
@@ -47,58 +52,35 @@ function LoadingSkeleton() {
   );
 }
 
-// Fade-in effect
+// ✨ Fade-in effect
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 `;
 
-// Styles
+// ✨ Styled components
 const ArticleWrapper = styled.div`
   max-width: 900px;
   margin: 2rem auto;
   padding: 0 1.5rem;
-  font-family: "Georgia", serif;
-  color: #222;
-  line-height: 1.7;
   animation: ${fadeIn} 0.5s ease-out;
-  @media (max-width: 768px) {
-    margin: 1rem auto;
-    padding: 0 1rem;
-  }
 `;
 
 const Title = styled.h1`
   font-size: 2.5rem;
   font-weight: bold;
   margin-bottom: 0.75rem;
-  color: #111;
-  @media (max-width: 768px) {
-    font-size: 1.8rem;
-    margin-bottom: 0.5rem;
-  }
 `;
 
 const Meta = styled.div`
   font-size: 0.95rem;
   color: #666;
   margin-bottom: 2rem;
-  span { font-weight: 500; color: #444; }
-  @media (max-width: 768px) {
-    font-size: 0.85rem;
-    margin-bottom: 1.5rem;
-    line-height: 1.5;
-  }
 `;
 
 const Paragraph = styled.p`
   margin-bottom: 1.5rem;
   font-size: 1.05rem;
-  @media (max-width: 768px) {
-    font-size: 1rem;
-    margin-bottom: 1.2rem;
-    line-height: 1.6;
-  }
 `;
 
 const ImageContainer = styled.div`
@@ -106,24 +88,12 @@ const ImageContainer = styled.div`
   max-height: 500px;
   overflow: hidden;
   margin-bottom: 2rem;
-  @media (max-width: 768px) {
-    max-height: 300px;
-    margin-bottom: 1.5rem;
-  }
 `;
 
 const ArticleImage = styled.img`
   width: 100%;
   height: 100%;
   object-fit: cover;
-  @media (max-width: 768px) { height: auto; }
-`;
-
-const ArticleContent = styled.div`
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 0 1.5rem;
-  @media (max-width: 768px) { padding: 0 1rem; }
 `;
 
 const RecommendedSection = styled.div`
@@ -132,21 +102,10 @@ const RecommendedSection = styled.div`
   border-top: 1px solid #eee;
 `;
 
-const RecommendedTitle = styled.h3`
-  font-size: 1.8rem;
-  margin-bottom: 1.5rem;
-  color: #111;
-  @media (max-width: 768px) { font-size: 1.5rem; }
-`;
-
 const RecommendedGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 2rem;
-  @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
 `;
 
 const RecommendedCard = styled.div`
@@ -166,74 +125,110 @@ const RecommendedImage = styled.img`
 const RecommendedArticleTitle = styled.h4`
   font-size: 1.1rem;
   color: #333;
-  margin-bottom: 0.5rem;
 `;
 
-const RecommendedMeta = styled.div`
-  font-size: 0.85rem;
-  color: #666;
+// 🆕 Reaction and Comment Styles
+const ReactionBar = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin: 2rem 0 1rem;
+  button {
+    background: #f5f5f5;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    &:hover { background: #eaeaea; }
+    &.active { background: #007bff; color: white; }
+  }
 `;
 
-// Format date helper
+const CommentSection = styled.div`
+  margin-top: 3rem;
+`;
+
+const CommentInput = styled.div`
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 2rem;
+  input, textarea {
+    margin-bottom: 0.5rem;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+  }
+  button {
+    align-self: flex-end;
+    background: #007bff;
+    color: white;
+    padding: 0.5rem 1.2rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    &:hover { background: #0056b3; }
+  }
+`;
+
+const CommentList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+`;
+
+const CommentCard = styled.div`
+  background: #f9f9f9;
+  padding: 1rem;
+  border-radius: 8px;
+  h4 {
+    margin: 0;
+    font-size: 1rem;
+    color: #333;
+  }
+  p {
+    margin-top: 0.3rem;
+    font-size: 0.95rem;
+    color: #444;
+  }
+  span {
+    font-size: 0.8rem;
+    color: #888;
+  }
+`;
+
 const formatDate = (dateString) => {
   const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", {
-    month: "long",
+  return date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+};
+const formatTimestamp = (ts) => {
+  if (!ts) return "";
+  const date = ts.toDate ? ts.toDate() : ts;
+  return date.toLocaleString("en-US", {
+    month: "short",
     day: "numeric",
     year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
 function Article() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [articleData, setArticleData] = useState(null);
   const [recommendedArticles, setRecommendedArticles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reaction, setReaction] = useState(null);
+  const [reactionsCount, setReactionsCount] = useState({ like: 0, love: 0 });
+  const [comments, setComments] = useState([]);
+  const [commentName, setCommentName] = useState("");
+  const [commentText, setCommentText] = useState("");
+
   const { id } = useParams();
   const navigate = useNavigate();
-
-  // Fetch recommended articles
-  const getRecommendedArticles = async (currentArticle) => {
-    try {
-      const articlesRef = collection(firestore, "articles");
-
-      // First try: same category
-      const categoryQuery = query(
-        articlesRef,
-        orderBy("timestamp", "desc"),
-        limit(6)
-      );
-
-      const categorySnapshot = await getDocs(categoryQuery);
-      let recommendations = [];
-      categorySnapshot.forEach((doc) => {
-        const data = { id: doc.id, ...doc.data() };
-        if (doc.id !== id && data.category === currentArticle.category) {
-          recommendations.push(data);
-        }
-      });
-
-      // If fewer than 3, get recent regardless of category
-      if (recommendations.length < 3) {
-        const recentQuery = query(
-          articlesRef,
-          orderBy("timestamp", "desc"),
-          limit(6)
-        );
-        const recentSnapshot = await getDocs(recentQuery);
-        recentSnapshot.forEach((doc) => {
-          const data = { id: doc.id, ...doc.data() };
-          if (doc.id !== id && !recommendations.find(r => r.id === doc.id)) {
-            recommendations.push(data);
-          }
-        });
-      }
-
-      setRecommendedArticles(recommendations.slice(0, 3));
-    } catch (error) {
-      console.error("Error fetching recommendations:", error);
-    }
-  };
 
   // Fetch article
   useEffect(() => {
@@ -244,7 +239,6 @@ function Article() {
         if (articleDoc.exists()) {
           const article = { id: articleDoc.id, ...articleDoc.data() };
           setArticleData(article);
-          await getRecommendedArticles(article);
         }
       } catch (error) {
         console.error("Error fetching article:", error);
@@ -252,92 +246,156 @@ function Article() {
         setLoading(false);
       }
     };
-
     if (id) fetchArticle();
   }, [id]);
 
-  // Handle recommended click
-  const handleRecommendedClick = (articleId) => {
-    navigate(`/article/${articleId}`);
-    window.scrollTo(0, 0);
+  // Real-time reactions and comments
+  useEffect(() => {
+    if (!id) return;
+
+    const reactionsRef = collection(firestore, "articles", id, "reactions");
+    const unsubscribeReactions = onSnapshot(reactionsRef, (snapshot) => {
+      let counts = { like: 0, love: 0 };
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.type === "like") counts.like++;
+        if (data.type === "love") counts.love++;
+      });
+      setReactionsCount(counts);
+    });
+
+    const commentsRef = collection(firestore, "articles", id, "comments");
+    const commentsQuery = query(commentsRef, orderBy("timestamp", "desc"));
+    const unsubscribeComments = onSnapshot(commentsQuery, (snapshot) => {
+      const commentsList = [];
+      snapshot.forEach((doc) => commentsList.push({ id: doc.id, ...doc.data() }));
+      setComments(commentsList);
+    });
+
+    return () => {
+      unsubscribeReactions();
+      unsubscribeComments();
+    };
+  }, [id]);
+
+  const handleReaction = async (type) => {
+    try {
+      const userId = "anonymous";
+      const reactionRef = doc(firestore, "articles", id, "reactions", userId);
+
+      if (reaction === type) {
+        setReaction(null);
+        await setDoc(reactionRef, { type: null });
+      } else {
+        setReaction(type);
+        await setDoc(reactionRef, { type });
+      }
+    } catch (error) {
+      console.error("Error setting reaction:", error);
+    }
   };
 
-  // Loading state
-  if (loading) {
+  const handleCommentSubmit = async () => {
+    if (!commentName.trim() || !commentText.trim()) return alert("Please fill out all fields.");
+
+    try {
+      const commentsRef = collection(firestore, "articles", id, "comments");
+      await addDoc(commentsRef, {
+        name: commentName,
+        text: commentText,
+        timestamp: serverTimestamp(),
+      });
+      setCommentName("");
+      setCommentText("");
+    } catch (error) {
+      console.error("Error adding comment:", error);
+    }
+  };
+
+  if (loading)
     return (
       <>
-        <Header isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
+        <Header />
         <LoadingSkeleton />
         <Footer />
       </>
     );
-  }
 
-  // Article not found
-  if (!articleData) {
+  if (!articleData)
     return (
       <>
-        <Header isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
-        <HeaderSpacer shrink={window.scrollY > 100} />
+        <Header />
         <ArticleWrapper><h2>Article not found</h2></ArticleWrapper>
         <Footer />
       </>
     );
-  }
 
   return (
     <>
-      {articleData && (
-        <Helmet>
-          <title>{articleData.title}</title>
-          <meta property="og:title" content={articleData.title} />
-          <meta property="og:description" content={articleData.content.slice(0, 200) + "..."} />
-          <meta property="og:image" content={`https://ourladyofguadalupe.vercel.app/api/og?title=${encodeURIComponent(articleData.title)}&image=${encodeURIComponent(articleData.image)}`} />
-          <meta property="og:url" content={`https://ourladyofguadalupe.vercel.app/article/${id}`} />
-          <meta property="og:type" content="article" />
-          <meta name="twitter:card" content="summary_large_image" />
-          <meta name="twitter:image" content={`https://ourladyofguadalupe.vercel.app/api/og?title=${encodeURIComponent(articleData.title)}&image=${encodeURIComponent(articleData.image)}`} />
-          <meta name="twitter:title" content={articleData.title} />
-          <meta name="twitter:description" content={articleData.content.slice(0, 200) + "..."} />
-        </Helmet>
-      )}
+      <Helmet>
+        <title>{articleData.title}</title>
+      </Helmet>
 
-      <Header isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
+      <Header />
       <ArticleWrapper>
         <ImageContainer>
           <ArticleImage src={articleData.image} alt={articleData.title} />
         </ImageContainer>
-        <ArticleContent>
-          <Title>{articleData.title}</Title>
-          <Meta>
-            Posted on <span>{formatDate(articleData.date)}</span> in{" "}
-            <span>{articleData.category}</span> by{" "}
-            <span>{articleData.author}</span>
-          </Meta>
-          {articleData.content.split("\n\n").map((p, i) => (
-            <Paragraph key={i}>{p}</Paragraph>
-          ))}
-        </ArticleContent>
+        <Title>{articleData.title}</Title>
+        <Meta>
+          Posted on {formatDate(articleData.date)} · {articleData.category} · {articleData.author}
+        </Meta>
+        {articleData.content.split("\n\n").map((p, i) => (
+          <Paragraph key={i}>{p}</Paragraph>
+        ))}
 
-        {recommendedArticles.length > 0 && (
-          <RecommendedSection>
-            <RecommendedTitle>Recommended Articles</RecommendedTitle>
-            <RecommendedGrid>
-              {recommendedArticles.map((article) => (
-                <RecommendedCard key={article.id} onClick={() => handleRecommendedClick(article.id)}>
-                  {article.image && (
-                    <RecommendedImage src={article.image} alt={article.title} loading="lazy" />
-                  )}
-                  <RecommendedArticleTitle>{article.title}</RecommendedArticleTitle>
-                  <RecommendedMeta>
-                    {article.date && formatDate(article.date)} · {article.category}
-                  </RecommendedMeta>
-                </RecommendedCard>
-              ))}
-            </RecommendedGrid>
-          </RecommendedSection>
-        )}
+        {/* 🆕 Reaction Bar */}
+        <ReactionBar>
+          <button
+            className={reaction === "like" ? "active" : ""}
+            onClick={() => handleReaction("like")}
+          >
+            👍 {reactionsCount.like}
+          </button>
+          <button
+            className={reaction === "love" ? "active" : ""}
+            onClick={() => handleReaction("love")}
+          >
+            ❤️ {reactionsCount.love}
+          </button>
+        </ReactionBar>
+
+        {/* 🆕 Comments */}
+        <CommentSection>
+          <h3>Comments ({comments.length})</h3>
+          <CommentInput>
+            <input
+              type="text"
+              placeholder="Your name"
+              value={commentName}
+              onChange={(e) => setCommentName(e.target.value)}
+            />
+            <textarea
+              rows="3"
+              placeholder="Write your comment..."
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+            />
+            <button onClick={handleCommentSubmit}>Post Comment</button>
+          </CommentInput>
+
+          <CommentList>
+            {comments.map((comment) => (
+              <CommentCard key={comment.id}>
+                <h4>{comment.name}</h4>
+                <p>{comment.text}</p>
+                <span>{formatTimestamp(comment.timestamp)}</span>
+              </CommentCard>
+            ))}
+          </CommentList>
+        </CommentSection>
       </ArticleWrapper>
+
       <Footer />
     </>
   );

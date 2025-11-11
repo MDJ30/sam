@@ -222,7 +222,14 @@ const Logo = styled.img`
 
 const SCROLL_THRESHOLD = 100;
 
-const Header = ({ isMenuOpen, setIsMenuOpen }) => {
+const Header = ({ isMenuOpen: externalMenuOpen, setIsMenuOpen: externalSetIsMenuOpen }) => {
+  // Use internal state if props not provided
+  const [internalMenuOpen, setInternalMenuOpen] = useState(false);
+  
+  // Determine which state to use
+  const isMenuOpen = externalMenuOpen !== undefined ? externalMenuOpen : internalMenuOpen;
+  const setIsMenuOpen = externalSetIsMenuOpen || setInternalMenuOpen;
+
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeLink, setActiveLink] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -321,7 +328,7 @@ const Header = ({ isMenuOpen, setIsMenuOpen }) => {
 
   const handleNavClick = (linkName) => {
     setActiveLink(linkName);
-    setIsMenuOpen(false);
+    if (setIsMenuOpen) setIsMenuOpen(false);
   };
 
   const handleSearchClick = () => {
@@ -337,18 +344,16 @@ const Header = ({ isMenuOpen, setIsMenuOpen }) => {
   const handleHomeClick = (e) => {
     e.preventDefault();
     setActiveLink("home");
-    setIsMenuOpen(false);
+    if (setIsMenuOpen) setIsMenuOpen(false);
     navigate('/');
     window.scrollTo(0, 0);
   };
 
-  // Update the handleNewsClick function
-const handleNewsClick = (e) => {
-  e.preventDefault();
-  navigate('/news', { state: { fromOtherPage: true } });
-  setIsMenuOpen(false);
-  // Don't set active link here as it will be handled by useEffect
-};
+  const handleNewsClick = (e) => {
+    e.preventDefault();
+    navigate('/news', { state: { fromOtherPage: true } });
+    if (setIsMenuOpen) setIsMenuOpen(false);
+  };
 
   // Add this new useEffect for scroll handling
   useEffect(() => {
@@ -400,24 +405,17 @@ const handleNewsClick = (e) => {
               Home
             </StyledNavLink>
           </li>
+       
           <li>
             <StyledNavLink 
-              to="/about"
-              onClick={() => handleNavClick('about')}
+              to="/news"
+              className={activeLink === "news" ? "active" : ""}
+              onClick={handleNewsClick}
+              $isActive={activeLink === "news"}
             >
-              About Us
+              News
             </StyledNavLink>
           </li>
-     <li>
-  <StyledNavLink 
-    to="/news"
-    className={activeLink === "news" ? "active" : ""}
-    onClick={handleNewsClick}
-    $isActive={activeLink === "news"}
-  >
-    News
-  </StyledNavLink>
-</li>
           <li>
             <StyledNavLink 
               to="/team"

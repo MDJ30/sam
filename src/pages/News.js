@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, doc, updateDoc, increment } from "firebase/firestore";
 import { firestore } from "../config/firebase";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import styled from "styled-components";
 import { Header, HeaderSpacer } from '../components/Header';
 import Footer from "../components/Footer";
@@ -26,10 +26,11 @@ const ArticleCard = styled.div`
   h2 a {
     text-decoration: none;
     color: #000;
-  }
+    cursor: pointer;
 
-  h2 a:hover {
-    color: #007bff;
+    &:hover {
+      color: #007bff;
+    }
   }
 
   .meta {
@@ -54,10 +55,16 @@ const ArticleCard = styled.div`
     object-fit: cover;
     border-radius: 6px;
     margin-bottom: 1rem;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+
+    &:hover {
+      transform: scale(1.02);
+    }
   }
 `;
 
-const Button = styled(Link)`
+const Button = styled.button`
   display: inline-block;
   padding: 0.6rem 1.2rem;
   background: #000;
@@ -65,6 +72,9 @@ const Button = styled(Link)`
   border-radius: 4px;
   text-decoration: none;
   font-size: 0.9rem;
+  border: none;
+  cursor: pointer;
+  transition: background 0.3s ease;
 
   &:hover {
     background: #333;
@@ -84,6 +94,7 @@ const Pagination = styled.div`
     color: white;
     border-radius: 4px;
     cursor: pointer;
+    transition: background 0.3s ease;
 
     &:disabled {
       background: #aaa;
@@ -100,6 +111,7 @@ function News() {
   const [articles, setArticles] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
   const articlesPerPage = 10;
 
   useEffect(() => {
@@ -118,13 +130,35 @@ function News() {
   }, []);
 
   const formatDate = (dateString) => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString("en-US", {
-    month: "long",  // This displays month as words (e.g., "September" instead of "09")
-    day: "numeric",
-    year: "numeric",
-  });
-};
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  // 🔹 Handle article click with view count
+  const handleArticleClick = async (articleId) => {
+    if (!articleId) return;
+
+    try {
+      // Increment the view count
+      const articleRef = doc(firestore, "articles", articleId);
+      await updateDoc(articleRef, {
+        views: increment(1),
+        lastViewed: new Date(),
+      });
+
+      // Navigate to article
+      navigate(`/article/${articleId}`);
+    } catch (error) {
+      console.error("Error updating view count:", error);
+      // Still navigate even if there's an error
+      navigate(`/article/${articleId}`);
+    }
+  };
+
   // Pagination logic
   const indexOfLast = currentPage * articlesPerPage;
   const indexOfFirst = indexOfLast - articlesPerPage;
@@ -133,57 +167,67 @@ function News() {
 
   return (
     <>
-    <Header isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
-    <HeaderSpacer shrink={window.scrollY > 100} />
-    <NewsWrapper>
-      <h1>Latest News</h1>
+      <Header isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} />
+      <HeaderSpacer shrink={window.scrollY > 100} />
+      <NewsWrapper>
+        <h1>Latest News</h1>
 
-      {currentArticles.length === 0 ? (
-        <p>No articles available.</p>
-      ) : (
-        currentArticles.map((article) => (
-          <ArticleCard key={article.id}>
-            {article.image && <img src={article.image} alt={article.title} />}
-            <h2>
-              <Link to={`/article/${article.id}`}>{article.title}</Link>
-            </h2>
-            <div className="meta">
-              Posted on{" "}
-              <span>{formatDate(article.date)}</span> in{" "}
-              <span>{article.category}</span> by{" "}
-              <span>{article.author}</span>
-            </div>
-            <p className="excerpt">
-              {article.content.length > 180
-                ? article.content.substring(0, 180) + "..."
-                : article.content}
-            </p>
-            <Button to={`/article/${article.id}`}>READ MORE</Button>
-          </ArticleCard>
-        ))
-      )}
+        {currentArticles.length === 0 ? (
+          <p>No articles available.</p>
+        ) : (
+          currentArticles.map((article) => (
+            <ArticleCard key={article.id}>
+              {article.image && (
+                <img
+                  src={article.image}
+                  alt={article.title}
+                  onClick={() => handleArticleClick(article.id)}
+                />
+              )}
+              <h2>
+                <a onClick={() => handleArticleClick(article.id)}>
+                  {article.title}
+                </a>
+              </h2>
+              <div className="meta">
+                Posted on{" "}
+                <span>{formatDate(article.date)}</span> in{" "}
+                <span>{article.category}</span> by{" "}
+                <span>{article.author}</span>
+              </div>
+              <p className="excerpt">
+                {article.content.length > 180
+                  ? article.content.substring(0, 180) + "..."
+                  : article.content}
+              </p>
+              <Button onClick={() => handleArticleClick(article.id)}>
+                READ MORE
+              </Button>
+            </ArticleCard>
+          ))
+        )}
 
-      {totalPages > 1 && (
-        <Pagination>
-          <button
-            onClick={() => setCurrentPage((prev) => prev - 1)}
-            disabled={currentPage === 1}
-          >
-            Previous
-          </button>
-          <span>
-            Page {currentPage} of {totalPages}
-          </span>
-          <button
-            onClick={() => setCurrentPage((prev) => prev + 1)}
-            disabled={currentPage === totalPages}
-          >
-            Next
-          </button>
-        </Pagination>
-      )}
-    </NewsWrapper>
-    <Footer />
+        {totalPages > 1 && (
+          <Pagination>
+            <button
+              onClick={() => setCurrentPage((prev) => prev - 1)}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            <span>
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage((prev) => prev + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </Pagination>
+        )}
+      </NewsWrapper>
+      <Footer />
     </>
   );
 }
