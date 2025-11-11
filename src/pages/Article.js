@@ -12,12 +12,12 @@ import {
   serverTimestamp,
   onSnapshot,
   setDoc,
+  where,
 } from "firebase/firestore";
 import { firestore } from "../config/firebase";
 import styled, { keyframes } from "styled-components";
 import { Header, HeaderSpacer } from "../components/Header";
 import Footer from "../components/Footer";
-import { Helmet } from 'react-helmet-async';
 
 // ✨ Animation for shimmer
 const shimmer = keyframes`
@@ -239,6 +239,8 @@ function Article() {
         if (articleDoc.exists()) {
           const article = { id: articleDoc.id, ...articleDoc.data() };
           setArticleData(article);
+          // fetch recommendations based on the loaded article
+          await getRecommendedArticles(article);
         }
       } catch (error) {
         console.error("Error fetching article:", error);
@@ -248,6 +250,13 @@ function Article() {
     };
     if (id) fetchArticle();
   }, [id]);
+
+  // set document title instead of Helmet
+  useEffect(() => {
+    if (articleData && articleData.title) {
+      document.title = articleData.title;
+    }
+  }, [articleData]);
 
   // Real-time reactions and comments
   useEffect(() => {
@@ -277,6 +286,40 @@ function Article() {
       unsubscribeComments();
     };
   }, [id]);
+
+  // added: centralized recommended fetch function
+  const getRecommendedArticles = async (currentArticle) => {
+    try {
+      const articlesRef = collection(firestore, "articles");
+
+      // First try: same category (most recent)
+      const categoryQuery = query(articlesRef, orderBy("timestamp", "desc"), limit(6));
+      const categorySnapshot = await getDocs(categoryQuery);
+      let recommendations = [];
+      categorySnapshot.forEach((docSnap) => {
+        const data = { id: docSnap.id, ...docSnap.data() };
+        if (docSnap.id !== id && data.category === currentArticle.category) {
+          recommendations.push(data);
+        }
+      });
+
+      // If fewer than 3, add recent articles regardless of category
+      if (recommendations.length < 3) {
+        const recentQuery = query(articlesRef, orderBy("timestamp", "desc"), limit(6));
+        const recentSnapshot = await getDocs(recentQuery);
+        recentSnapshot.forEach((docSnap) => {
+          const data = { id: docSnap.id, ...docSnap.data() };
+          if (docSnap.id !== id && !recommendations.find((r) => r.id === docSnap.id)) {
+            recommendations.push(data);
+          }
+        });
+      }
+
+      setRecommendedArticles(recommendations.slice(0, 3));
+    } catch (error) {
+      console.error("Error fetching recommendations:", error);
+    }
+  };
 
   const handleReaction = async (type) => {
     try {
@@ -332,10 +375,6 @@ function Article() {
 
   return (
     <>
-      <Helmet>
-        <title>{articleData.title}</title>
-      </Helmet>
-
       <Header />
       <ArticleWrapper>
         <ImageContainer>
@@ -345,6 +384,7 @@ function Article() {
         <Meta>
           Posted on {formatDate(articleData.date)} · {articleData.category} · {articleData.author}
         </Meta>
+
         {articleData.content.split("\n\n").map((p, i) => (
           <Paragraph key={i}>{p}</Paragraph>
         ))}
@@ -394,6 +434,24 @@ function Article() {
             ))}
           </CommentList>
         </CommentSection>
+
+        {/* 🆕 Recommended Articles */}
+        {recommendedArticles.length > 0 && (
+          <RecommendedSection>
+            <h3>Recommended for you</h3>
+            <RecommendedGrid>
+              {recommendedArticles.map((rec) => (
+                <RecommendedCard
+                  key={rec.id}
+                  onClick={() => navigate(`/article/${rec.id}`)}
+                >
+                  <RecommendedImage src={rec.image} alt={rec.title} />
+                  <RecommendedArticleTitle>{rec.title}</RecommendedArticleTitle>
+                </RecommendedCard>
+              ))}
+            </RecommendedGrid>
+          </RecommendedSection>
+        )}
       </ArticleWrapper>
 
       <Footer />
