@@ -3,7 +3,8 @@ import React, { useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { Header, HeaderSpacer } from "../components/Header";
 import Footer from "../components/Footer";
-import sam from "../sam.jpg";
+import sam from "../sam.jpg"; // Im
+import def from "../def.jpg"; // Import a default image
 
 // Add fade-in animation
 const fadeIn = keyframes`
@@ -180,32 +181,32 @@ const teamMembers = [
    { 
     name: "Lizel Tuazon Mapa", 
     title: "Captioner", 
-    img: "https://via.placeholder.com/100" 
+    img: def 
   },
   { 
     name: "Alyana Mae M. Frigillana", 
     title: "Layout Artist", 
-    img: "https://via.placeholder.com/100" 
+    img: def
   },
   { 
     name: "Arrah Lyka L. Galeos", 
     title: "Layout Artist", 
-    img: "https://via.placeholder.com/100" 
+    img: def 
   },
   { 
     name: "Romy Jun L. Cuyos Jr.", 
     title: "Cinematographer", 
-    img: "https://via.placeholder.com/100" 
+    img: def 
   },
   { 
     name: "Faith Angel E. Lauronal", 
     title: "Cinematographer", 
-    img: "https://via.placeholder.com/100" 
+    img: def
   },
   { 
     name: "Paul Jake S. Caburay", 
     title: "Cinematographer/Editor", 
-    img: "https://via.placeholder.com/100" 
+    img: def
   },
 ];
 
