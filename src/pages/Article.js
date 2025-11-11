@@ -251,14 +251,12 @@ function Article() {
     if (id) fetchArticle();
   }, [id]);
 
-  // set document title instead of Helmet
   useEffect(() => {
     if (articleData && articleData.title) {
       document.title = articleData.title;
     }
   }, [articleData]);
 
-  // Real-time reactions and comments
   useEffect(() => {
     if (!id) return;
 
