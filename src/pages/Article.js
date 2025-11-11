@@ -219,6 +219,15 @@ const formatTimestamp = (ts) => {
   });
 };
 
+const getUserId = () => {
+  let id = localStorage.getItem("userId");
+  if (!id) {
+    id = crypto.randomUUID(); // or use any UUID library
+    localStorage.setItem("userId", id);
+  }
+  return id;
+};
+
 function Article() {
   const [articleData, setArticleData] = useState(null);
   const [recommendedArticles, setRecommendedArticles] = useState([]);
@@ -352,7 +361,7 @@ function Article() {
         if (data.type === "like") counts.like++;
         if (data.type === "love") counts.love++;
       });
-      setReactionsCount(counts);
+      setReactionsCount(counts); // Update the state with the new counts
     });
 
     const commentsRef = collection(firestore, "articles", id, "comments");
@@ -369,16 +378,30 @@ function Article() {
     };
   }, [id]);
 
+  useEffect(() => {
+    if (!id) return;
+    const userId = getUserId();
+    const reactionRef = doc(firestore, "articles", id, "reactions", userId);
+
+    const unsubscribeUserReaction = onSnapshot(reactionRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setReaction(docSnap.data().type); // sync local state
+      } else {
+        setReaction(null);
+      }
+    });
+
+    return () => unsubscribeUserReaction();
+  }, [id]);
+
   const handleReaction = async (type) => {
     try {
-      const userId = "anonymous";
+      const userId = getUserId();
       const reactionRef = doc(firestore, "articles", id, "reactions", userId);
 
       if (reaction === type) {
-        setReaction(null);
         await setDoc(reactionRef, { type: null });
       } else {
-        setReaction(type);
         await setDoc(reactionRef, { type });
       }
     } catch (error) {
