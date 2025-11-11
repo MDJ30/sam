@@ -12,6 +12,8 @@ import {
   serverTimestamp,
   onSnapshot,
   setDoc,
+  updateDoc,
+  increment,
   
 } from "firebase/firestore";
 import { firestore } from "../config/firebase";
@@ -226,7 +228,8 @@ function Article() {
   const [comments, setComments] = useState([]);
   const [commentName, setCommentName] = useState("");
   const [commentText, setCommentText] = useState("");
-
+  const [showAllComments, setShowAllComments] = useState(false);
+  
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -291,6 +294,53 @@ function Article() {
     }
   }, [articleData]);
 
+  // Increment view count for external opens (not for reloads or internal clicks)
+  useEffect(() => {
+    if (!articleData || !id) return;
+
+    const isReload = () => {
+      try {
+        const navEntries = performance.getEntriesByType?.("navigation") || [];
+        if (navEntries.length) return navEntries[0].type === "reload";
+        // fallback for older browsers
+        // performance.navigation.type === 1 means reload
+        // eslint-disable-next-line no-undef
+        return typeof performance !== "undefined" && performance.navigation && performance.navigation.type === 1;
+      } catch {
+        return false;
+      }
+    };
+
+    const cameFromExternal = () => {
+      try {
+        const ref = document.referrer;
+        if (!ref) return true; // direct / copied link
+        const refOrigin = new URL(ref).origin;
+        return refOrigin !== window.location.origin; // external site
+      } catch {
+        return true;
+      }
+    };
+
+    // Don't increment on reload or when navigation was internal (internal clicks should call handleArticleClick)
+    if (isReload()) return;
+    if (!cameFromExternal()) return;
+
+    const incrementViews = async () => {
+      try {
+        const articleRef = doc(firestore, "articles", id);
+        await updateDoc(articleRef, {
+          views: increment(1),
+          lastViewed: serverTimestamp(),
+        });
+      } catch (error) {
+        console.error("Error incrementing article views:", error);
+      }
+    };
+
+    incrementViews();
+  }, [id, articleData]);
+
   useEffect(() => {
     if (!id) return;
 
@@ -353,6 +403,22 @@ function Article() {
     }
   };
 
+  // When user clicks a recommended article we increment its view count
+  // (internal navigation) and then navigate to it.
+  const handleArticleClick = async (articleId) => {
+    try {
+      const articleRef = doc(firestore, "articles", articleId);
+      await updateDoc(articleRef, {
+        views: increment(1),
+        lastViewed: serverTimestamp(),
+      });
+    } catch (error) {
+      console.error("Error incrementing recommended article views:", error);
+    } finally {
+      navigate(`/article/${articleId}`);
+    }
+  };
+  
   if (loading)
     return (
       <>
@@ -423,14 +489,32 @@ function Article() {
           </CommentInput>
 
           <CommentList>
-            {comments.map((comment) => (
-              <CommentCard key={comment.id}>
-                <h4>{comment.name}</h4>
-                <p>{comment.text}</p>
-                <span>{formatTimestamp(comment.timestamp)}</span>
-              </CommentCard>
-            ))}
+            { (showAllComments ? comments : comments.slice(0, 3)).map((comment) => (
+                <CommentCard key={comment.id}>
+                  <h4>{comment.name}</h4>
+                  <p>{comment.text}</p>
+                  <span>{formatTimestamp(comment.timestamp)}</span>
+                </CommentCard>
+              ))}
           </CommentList>
+
+          {comments.length > 3 && (
+            <div style={{ textAlign: "center", marginTop: "1rem" }}>
+              <button
+                onClick={() => setShowAllComments(prev => !prev)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#007bff",
+                  cursor: "pointer",
+                  textDecoration: "underline",
+                  padding: 0
+                }}
+              >
+                {showAllComments ? "Show fewer comments" : `See all comments (${comments.length})`}
+              </button>
+            </div>
+          )}
         </CommentSection>
 
         {/* 🆕 Recommended Articles */}
@@ -441,7 +525,7 @@ function Article() {
               {recommendedArticles.map((rec) => (
                 <RecommendedCard
                   key={rec.id}
-                  onClick={() => navigate(`/article/${rec.id}`)}
+                  onClick={() => handleArticleClick(rec.id)}
                 >
                   <RecommendedImage src={rec.image} alt={rec.title} />
                   <RecommendedArticleTitle>{rec.title}</RecommendedArticleTitle>
