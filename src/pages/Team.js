@@ -8,6 +8,7 @@ import arrah from "./pics/arrah.jpg";
 import alyanah from "./pics/alyanah.jpg";
 import faith from "./pics/faith.jpg";
 import paul from "./pics/paul caburnay.jpg";
+import def from "../def.jpg";
 import romy from "./pics/romy.jpg"; // Import a default image
 
 // Add fade-in animation

@@ -1,5 +1,5 @@
 import styled from "styled-components";
-import bg from "../1.png";
+import bg from "../pages/pics/logo.jpg";
 
 export const Navbar = styled.nav`
   display: flex;
