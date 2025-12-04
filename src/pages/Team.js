@@ -3,8 +3,12 @@ import React, { useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { Header, HeaderSpacer } from "../components/Header";
 import Footer from "../components/Footer";
-import sam from "../sam.jpg"; // Im
-import def from "../def.jpg"; // Import a default image
+import sam from "./pics/sam.jpg"; // Im
+import arrah from "./pics/arrah.jpg";
+import alyanah from "./pics/alyanah.jpg";
+import faith from "./pics/faith.jpg";
+import paul from "./pics/paul caburnay.jpg";
+import romy from "./pics/romy.jpg"; // Import a default image
 
 // Add fade-in animation
 const fadeIn = keyframes`
@@ -186,27 +190,27 @@ const teamMembers = [
   { 
     name: "Alyana Mae M. Frigillana", 
     title: "Layout Artist", 
-    img: def
+    img: alyanah
   },
   { 
     name: "Arrah Lyka L. Galeos", 
     title: "Layout Artist", 
-    img: def 
+    img: arrah 
   },
   { 
     name: "Romy Jun L. Cuyos Jr.", 
     title: "Cinematographer", 
-    img: def 
+    img: romy 
   },
   { 
     name: "Faith Angel E. Lauronal", 
     title: "Cinematographer", 
-    img: def
+    img: faith
   },
   { 
     name: "Paul Jake S. Caburay", 
     title: "Cinematographer/Editor", 
-    img: def
+    img: paul
   },
 ];
 
