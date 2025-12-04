@@ -209,7 +209,7 @@ const teamMembers = [
     img: faith
   },
   { 
-    name: "Paul Jake S. Caburay", 
+    name: "Paul Jake S. Caburnay", 
     title: "Cinematographer/Editor", 
     img: paul
   },
