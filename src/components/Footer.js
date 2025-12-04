@@ -108,7 +108,7 @@ const Footer = () => {
             PHASE 6, DECA HOMES, TUGBOK DISTRICT, DAVAO CITY
           </p>
           <p>
-            <strong>Contact #</strong> 09055162157<br />
+            <strong>Contact #</strong>0912 216 5421<br />
             <strong>Tel #</strong> 287-7843<br />
             <strong>Priest's Hours:</strong> WEDNESDAY-THURSDAY: 9:00AM-11:30AM<br />
             <strong>Office Hours:</strong> TUESDAY-SUNDAY: 9:00AM-4:00PM
