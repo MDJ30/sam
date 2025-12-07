@@ -8,6 +8,7 @@ import arrah from "./pics/arrah.jpg";
 import alyanah from "./pics/alyanah.jpg";
 import faith from "./pics/faith.jpg";
 import paul from "./pics/paul caburnay.jpg";
+import lizel from "./pics/lizel.jpg";
 import def from "../def.jpg";
 import romy from "./pics/romy.jpg"; // Import a default image
 
@@ -186,7 +187,7 @@ const teamMembers = [
    { 
     name: "Lizel Tuazon Mapa", 
     title: "Captioner", 
-    img: def 
+    img: lizel 
   },
   { 
     name: "Alyana Mae M. Frigillana", 
